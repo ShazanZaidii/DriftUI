@@ -63,6 +63,14 @@ import kotlin.reflect.KProperty // Required for Property Delegation
 // Button
 import androidx.compose.material3.Button as MaterialButton
 
+// Divider
+import androidx.compose.material3.Divider as MaterialDivider
+
+// List
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
+
 // Preview
 import androidx.compose.ui.tooling.preview.Preview
 
@@ -90,6 +98,20 @@ val Color.Companion.brown: Color get() = Color(0xFFA2845E)
 val Color.Companion.mint: Color get() = Color(0xFF00C7BE)
 val Color.Companion.teal: Color get() = Color(0xFF30B0C7)
 val Color.Companion.indigo: Color get() = Color(0xFF5856D6)
+
+// ---------------------------------------------------------
+// MARK: - SwiftUI-style Alignments
+// ---------------------------------------------------------
+
+val top: Alignment = Alignment.TopCenter
+val center: Alignment = Alignment.Center
+val bottom: Alignment = Alignment.BottomCenter
+val leading: Alignment = Alignment.CenterStart
+val trailing: Alignment = Alignment.CenterEnd
+val topLeading: Alignment = Alignment.TopStart
+val topTrailing: Alignment = Alignment.TopEnd
+val bottomLeading: Alignment = Alignment.BottomStart
+val bottomTrailing: Alignment = Alignment.BottomEnd
 
 
 // ---------------------------------------------------------
@@ -155,10 +177,7 @@ fun ZStack(
 
 //MAINNNNNNNNNN
 @Composable
-fun DriftView(
-    modifier: Modifier = Modifier, 
-    content: @Composable BoxScope.() -> Unit
-) {
+fun DriftView(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -578,5 +597,67 @@ fun Button(
         contentAlignment = Alignment.Center
     ) {
         label()
+    }
+}
+
+// ---------------------------------------------------------
+// MARK: - Divider (SwiftUI-Style)
+// ---------------------------------------------------------
+
+@Composable
+fun Divider(
+    modifier: Modifier = Modifier,
+    color: Color = Color.gray,
+    thickness: Int = 1
+) {
+    MaterialDivider(
+        modifier = modifier,
+        thickness = thickness.dp,
+        color = color
+    )
+}
+
+// ---------------------------------------------------------
+// MARK: - List (SwiftUI-Style)
+// ---------------------------------------------------------
+
+// Static List (like SwiftUI's simple List)
+@Composable
+fun List(
+    alignment: Alignment = center,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = alignment
+    ) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8)
+                .clip(RoundedRectangle(10))
+                .background(Color.lightGray.copy(alpha = 0.2f))
+        ) {
+            content()
+        }
+    }
+}
+
+// Data-Driven List (like SwiftUI's List(data) { ... })
+@Composable
+fun <T> List(
+    items: List<T>,
+    modifier: Modifier = Modifier,
+    alignment: Alignment = center,
+    rowContent: @Composable (item: T) -> Unit
+) {
+    List(alignment = alignment, modifier = modifier) {
+        items.forEachIndexed { index, item ->
+            rowContent(item)
+            if (index < items.size - 1) {
+                Divider()
+            }
+        }
     }
 }
