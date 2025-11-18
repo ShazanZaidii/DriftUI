@@ -11,6 +11,5 @@ class LoginViewModel : ObservableObject() {
 
     fun login() {
         isLoading.set(true)
-        // simulate work (in future you can use coroutines)
     }
 }
