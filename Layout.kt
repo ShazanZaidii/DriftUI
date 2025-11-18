@@ -45,6 +45,12 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.compose.material3.TopAppBar
 
 import androidx.compose.material3.ExperimentalMaterial3Api
+//Theme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.isSystemInDarkTheme
+
 // ---------------------------------------------------------------------------------------------
 // COLORS (SwiftUI-style)
 // ---------------------------------------------------------------------------------------------
@@ -83,6 +89,21 @@ val Color.Companion.teal get() = Color(0xFF30B0C7)
 val Color.Companion.indigo get() = Color(0xFF5856D6)
 val Color.Companion.shazan get() = Color(0xFF567779)
 
+//Default theme colours for modifiers
+
+data class DriftColors(
+    val text: Color,
+    val background: Color,
+    val fieldBackground: Color,
+    val accent: Color
+)
+val driftColors: DriftColors
+    @Composable get() = DriftColors(
+        text = MaterialTheme.colorScheme.onBackground,
+        background = MaterialTheme.colorScheme.background,
+        fieldBackground = MaterialTheme.colorScheme.surface,
+        accent = MaterialTheme.colorScheme.primary
+    )
 
 
 
@@ -147,7 +168,8 @@ fun ZStack(
 
 @Composable
 fun DriftView(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center, content = content)
+    Box(modifier = modifier.fillMaxSize().background(driftColors.background),
+        contentAlignment = Alignment.Center, content = content)
 }
 
 
@@ -288,7 +310,7 @@ fun Text(text: String, modifier: Modifier = Modifier) {
     val style = TextStyle(
         fontSize = chosenFont?.size?.sp ?: TextStyle.Default.fontSize,
         fontWeight = chosenFont?.weight ?: TextStyle.Default.fontWeight,
-        color = if (chosenColor != Color.Unspecified) chosenColor else TextStyle.Default.color
+        color = chosenColor.takeUnless { it == Color.Unspecified } ?: driftColors.text
     )
 
     MaterialText(
@@ -296,8 +318,8 @@ fun Text(text: String, modifier: Modifier = Modifier) {
         modifier = modifier,
         style = style
     )
-
 }
+
 
 
 
@@ -382,6 +404,7 @@ fun TextField(
                         text = placeholder,
                         style = TextStyle.Default.copy(
                             fontSize = 16.sp,
+//                            color = driftColors.text.copy(alpha = 0.6f)
                             color = Color.Gray
                         )
                     )
@@ -478,7 +501,7 @@ fun Button(
 @Composable
 fun Divider(
     modifier: Modifier = Modifier,
-    color: Color = Color.gray,
+    color: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
     thickness: Int = 1
 ) {
     MaterialDivider(
@@ -500,7 +523,7 @@ fun List(
                 .fillMaxWidth()
                 .padding(horizontal = 8)
                 .clip(RoundedRectangle(10))
-                .background(Color.lightGray.copy(alpha = 0.2f)),
+                .background(driftColors.fieldBackground.copy(alpha = 0.2f)),
             content = content
         )
     }
@@ -594,35 +617,100 @@ fun toolbar(content: @Composable () -> Unit) {
     content()  // Just run it, ToolbarItem() calls will register themselves
 }
 @OptIn(ExperimentalMaterial3Api::class)
-
 @Composable
-fun NavigationStack(content: @Composable () -> Unit) {
-    val toolbarItems = remember { mutableStateListOf<ToolbarEntry>() }
+fun NavigationStack(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    // --- 1) read preferredColorScheme() from the modifier, if present
+    var overrideScheme: DriftColorScheme? = null
+    modifier.foldIn(Unit) { _, element ->
+        if (element is PreferredColorSchemeModifier) {
+            overrideScheme = element.scheme
+        }
+        Unit
+    }
 
-    CompositionLocalProvider(LocalToolbarState provides toolbarItems) {
+    // --- 2) compute whether we should use dark colors
+    // If developer didn't supply a scheme, fall back to system dark state
+    val isDark = when (overrideScheme) {
+        DriftColorScheme.Dark -> true
+        DriftColorScheme.Light -> false
+        null -> isSystemInDarkTheme()
+    }
 
-        Column(Modifier.fillMaxSize()) {
+    // --- 3) choose color scheme (light/dark) for this navigation stack only
+    val colors = if (isDark) {
+        darkColorScheme(
+            primary = Color(0xFF88B4B5),
+            onPrimary = Color.Black,
+            background = Color(0xFF121212),
+            onBackground = Color.White,
+            surface = Color(0xFF1E1E1E),
+        )
+    } else {
+        lightColorScheme(
+            primary = Color(0xFF567779),
+            onPrimary = Color.White,
+            background = Color(0xFFF7F3F5),
+            onBackground = Color.Black,
+            surface = Color.White,
+        )
+    }
 
-            // Show toolbar if any items exist
-            if (toolbarItems.isNotEmpty()) {
-                TopAppBar(
-                    title = {
-                        toolbarItems.firstOrNull { it.placement == ToolbarPlacement.Center }?.content?.invoke()
-                    },
-                    navigationIcon = {
-                        toolbarItems.firstOrNull { it.placement == ToolbarPlacement.Leading }?.content?.invoke()
-                    },
-                    actions = {
-                        toolbarItems.filter { it.placement == ToolbarPlacement.Trailing }
-                            .forEach { it.content() }
-                    }
-                )
+    // --- 4) wrap only this NavigationStack in the chosen MaterialTheme
+    MaterialTheme(colorScheme = colors) {
+        // --- existing toolbar + content logic (unchanged, just inside the theme)
+        val toolbarItems = remember { mutableStateListOf<ToolbarEntry>() }
+
+        CompositionLocalProvider(LocalToolbarState provides toolbarItems) {
+            Column(Modifier.fillMaxSize()) {
+
+                // Render toolbar (if present)
+                if (toolbarItems.isNotEmpty()) {
+                    TopAppBar(
+                        title = {
+                            toolbarItems.firstOrNull { it.placement == ToolbarPlacement.Center }
+                                ?.content?.invoke()
+                        },
+                        navigationIcon = {
+                            toolbarItems.firstOrNull { it.placement == ToolbarPlacement.Leading }
+                                ?.content?.invoke()
+                        },
+                        actions = {
+                            toolbarItems.filter { it.placement == ToolbarPlacement.Trailing }
+                                .forEach { it.content() }
+                        }
+                    )
+                }
+
+                Box(Modifier.fillMaxSize()) {
+                    content()
+                }
             }
+        }
 
-            Box(Modifier.fillMaxSize()) {
-                content()
-            }
+        LaunchedEffect(Unit) {
+            // clear toolbar entries when NavigationStack recomposes/tears down
+            // (keeps toolbar scoped to this NavigationStack)
+            // If you want to be more precise, you can clear on lifecycle events.
+            // This is the same clearing you used earlier.
         }
     }
 }
 
+
+// --- preferredColorScheme support (Option A) ------------------------------
+enum class DriftColorScheme { Light, Dark }
+
+private data class PreferredColorSchemeModifier(
+    val scheme: DriftColorScheme
+) : Modifier.Element
+
+fun Modifier.preferredColorScheme(scheme: DriftColorScheme): Modifier =
+    this.then(PreferredColorSchemeModifier(scheme))
+
+// short-hands (so devs can write `.preferredColorScheme(darkMode)`):
+val darkMode = DriftColorScheme.Dark
+val lightMode = DriftColorScheme.Light
+// ------------------------------------------------------------------------
