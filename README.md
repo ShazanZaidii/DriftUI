@@ -89,8 +89,44 @@ NavigationStack(Modifier.preferredColorScheme(lightMode // or DarkMode)){
 }
 ```
 
+15. Dismis()-
+
+```
+val dismiss = Dismiss()
+Button(dismiss) { Text("Dismiss" , Modifier.font(system(size = 28, weight = bold)))}
+```
+
+16. Toolbar with modifiers -
+```
+NavigationStack(Modifier.toolbarStyle(foregroundColor = Color.shazan, backgroundColor = Color.DarkGray)) {
+        DriftView {
+            toolbar(
+                Modifier.toolbarStyle(backgroundColor = Color.yellow)
+                    .frame(width = 450, height = 100)
+                    .clipShape(RoundedRectangle(68))
+            ) {
+                ToolbarItem(placement = ToolbarPlacement.Center) {
+                        Text(
+                            "I am a Toolbar!", Modifier.frame(width = 290)
+                                .padding(top = 38).padding(leading = 55).foregroundStyle(Color.white)
+                                .font(system(size = 26, weight = bold))
+                        )
+                }
+            }
 
 
+        }
+
+    }
+```
+17. Toggle:
+```
+val wifi = State(true)
+Toggle(value = wifi.binding(), Modifier.padding(top = 5)){
+                    Text("Switch", Modifier.font(system(size =18, weight = bold)))
+                }
+Text("Current value is- ${wifi.value}")
+```
 Steps to Use DriftUI:
 1. Create a new Module of type Android Library
 2. Name it driftui
