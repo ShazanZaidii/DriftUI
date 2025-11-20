@@ -194,6 +194,38 @@ Slider(
         )
 
 ```
+21. onDoubleTap, onTripleTap, onHold and untilHold (which accepts parameters) -
+```
+@Composable
+fun LoginScreenView2() {
+    var isHighlighted = State(false)
+    NavigationStack(Modifier.toolbarStyle(foregroundColor = Color.shazan, backgroundColor = Color.shazan).preferredColorScheme(lightMode)) {
+        DriftView {
+            var value = State(0)
+
+                VStack {
+                   Text("Hold Me", Modifier.untilHold(onPress = { isHighlighted.set(true) }, onRelease = {isHighlighted.set(false)}).font(system(size = 48, weight = bold)).foregroundStyle(Color.shazan))
+                    Text("${isHighlighted.value}", Modifier.padding(top = 50))
+                    Slider(value = value, range = 0..100, step = 12,  modifier = Modifier.sliderStyle(stepOpacity = 0.1).rotationEffect(-90).offset(x= 120,y = 180))
+                    Button(action = {isHighlighted.toggle()}) {
+                        Text("Touch Me")
+                    }
+
+                    toolbar(Modifier.frame(height = 110)) {
+                        ToolbarItem(placement = ToolbarPlacement.Center) {
+                            Text("Gesture Control", Modifier.foregroundStyle(Color.white).font(system(size = 28, weight = bold)).padding(top = 55))
+                        }
+                    }
+                }
+
+
+
+        }
+
+    }
+}
+
+```
 Steps to Use DriftUI:
 1. Create a new Module of type Android Library
 2. Name it driftui
