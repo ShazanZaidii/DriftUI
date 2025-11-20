@@ -87,6 +87,8 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+
 
 
 
@@ -258,19 +260,90 @@ fun RowScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.weigh
 fun Spacer(size: Int) = androidx.compose.foundation.layout.Spacer(Modifier.size(size.dp))
 
 
-
 // ---------------------------------------------------------------------------------------------
 // SHAPES
 // ---------------------------------------------------------------------------------------------
 
+@Composable
+private fun Modifier.getForegroundColor(): Color? {
+    var chosenColor: Color? = null
+    this.foldIn(Unit) { _, element ->
+        if (element is ForegroundColorModifier) {
+            chosenColor = element.color
+        }
+        Unit
+    }
+    return chosenColor
+}
+
+@Composable
+fun Rectangle(
+    width: Int,
+    height: Int,
+    modifier: Modifier = Modifier
+) {
+    val fgColor = modifier.getForegroundColor() ?: driftColors.text
+
+    Box(
+        modifier = modifier
+            .size(width.dp, height.dp)
+            .clip(androidx.compose.ui.graphics.RectangleShape)
+            .foundationBackground(fgColor)
+    )
+}
+@Composable
+fun Circle(
+    radius: Int,
+    modifier: Modifier = Modifier
+) {
+    val fgColor = modifier.getForegroundColor() ?: driftColors.text
+
+    Box(
+        modifier = modifier
+            .size(radius.dp * 2)
+            .clip(CircleShape)
+            .foundationBackground(fgColor)
+    )
+}
+
+@Composable
+fun Capsule(
+    width: Int,
+    height: Int,
+    modifier: Modifier = Modifier
+) {
+    val fgColor = modifier.getForegroundColor() ?: driftColors.text
+
+    Box(
+        modifier = modifier
+            .size(width.dp, height.dp)
+            .clip(RoundedCornerShape(percent = 50))
+            .foundationBackground(fgColor)
+    )
+}
+
+@Composable
+fun RoundedRectangle(
+    width: Int,
+    height: Int,
+    cornerRadius: Int,
+    modifier: Modifier = Modifier
+) {
+    val fgColor = modifier.getForegroundColor() ?: driftColors.text
+
+    Box(
+        modifier = modifier
+            .size(width.dp, height.dp)
+            .clip(RoundedCornerShape(cornerRadius.dp))
+            .foundationBackground(fgColor)
+    )
+}
 fun Circle(): Shape = CircleShape
 fun Capsule(): Shape = RoundedCornerShape(percent = 50)
 fun RoundedRectangle(radius: Int): Shape = RoundedCornerShape(radius.dp)
 
 fun Modifier.clipShape(shape: Shape): Modifier = this.clip(shape)
 fun Modifier.cornerRadius(radius: Int): Modifier = this.clipShape(RoundedRectangle(radius))
-
-
 
 // ---------------------------------------------------------------------------------------------
 // BACKGROUND (fixed implementation)
@@ -322,6 +395,37 @@ fun Modifier.offset(x: Int = 0, y: Int = 0): Modifier =
             translationY = y.dp.toPx()
         }
     )
+
+
+
+// --- rotationEffect clean overloads ---
+fun Modifier.rotationEffect(degrees: Int): Modifier =
+    this.then(Modifier.graphicsLayer { rotationZ = degrees.toFloat() })
+
+fun Modifier.rotationEffect(degrees: Double): Modifier =
+    this.then(Modifier.graphicsLayer { rotationZ = degrees.toFloat() })
+
+fun Modifier.rotationEffect(degrees: Float): Modifier =
+    this.then(Modifier.graphicsLayer { rotationZ = degrees })
+
+// --- scaleEffect clean overloads ---
+fun Modifier.scaleEffect(scale: Int): Modifier =
+    this.then(Modifier.graphicsLayer {
+        scaleX = scale.toFloat()
+        scaleY = scale.toFloat()
+    })
+
+fun Modifier.scaleEffect(scale: Double): Modifier =
+    this.then(Modifier.graphicsLayer {
+        scaleX = scale.toFloat()
+        scaleY = scale.toFloat()
+    })
+
+fun Modifier.scaleEffect(scale: Float): Modifier =
+    this.then(Modifier.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    })
 
 // ---------------------------------------------------------------------------------------------
 // FONT SYSTEM + TEXT
@@ -376,6 +480,7 @@ val LocalToolbarStyle = compositionLocalOf { ToolbarStyle() }
 
 fun Modifier.font(font: SystemFont) = this.then(FontModifier(font))
 fun Modifier.foregroundStyle(color: Color) = this.then(ForegroundColorModifier(color))
+
 
 @Composable
 fun Text(text: String, modifier: Modifier = Modifier) {
