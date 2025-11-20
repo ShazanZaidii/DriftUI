@@ -90,9 +90,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-
-
-
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 // ---------------------------------------------------------------------------------------------
@@ -495,7 +497,7 @@ private data class SliderStyleModifier(
     val stepOpacity: Float? = null // Using Float for opacity (0.0 to 1.0)
 ) : Modifier.Element
 
-// In Layout.kt (Below the data class)
+private data class TapCountData(val count: Int, val lastTapTime: Long)
 
 fun Modifier.sliderStyle(
     activeTrackColor: Color? = null,
@@ -607,6 +609,18 @@ class State<T>(initial: T) {
     fun set(v: T) { s.value = v }
 
     fun binding() = Binding(s.value) { s.value = it }
+
+    fun toggle() {
+        if (s.value is Boolean) {
+            // Safe cast and flip the value
+            @Suppress("UNCHECKED_CAST")
+            s.value = !(s.value as Boolean) as T
+        } else {
+            // Optional: Log an error or ignore if not a Boolean state
+            println("Drift UI Error: .toggle() called on non-Boolean State.")
+        }
+    }
+
 }
 
 // -----------------------------------------
@@ -1509,3 +1523,99 @@ fun Modifier.onTapGesture(action: () -> Unit): Modifier =
             action()
         }
     }
+
+// DoubleTap Gesture
+
+fun Modifier.onDoubleTap(action: () -> Unit): Modifier =
+    this.then(
+        Modifier.pointerInput(Unit) { // 'Unit' is used as the key to restart the listener
+            detectTapGestures(onDoubleTap = { action() })
+        }
+    )
+
+// Triple tap Gesture
+
+
+fun Modifier.onTripleTap(action: () -> Unit): Modifier =
+    this.then(
+        Modifier.composed {
+            // State to track the tap count and the last tap time
+            val tapData = remember { mutableStateOf(TapCountData(0, 0L)) }
+            val resetTime = 500L // Maximum time gap between taps (0.5 seconds)
+
+            Modifier.pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        val currentTime = System.currentTimeMillis()
+                        val currentCount = tapData.value.count
+
+                        val newCount: Int
+
+                        // Check if the time since the last tap is within the reset threshold
+                        if (currentTime - tapData.value.lastTapTime < resetTime) {
+                            newCount = currentCount + 1
+                        } else {
+                            // First tap or too much time passed; start count from 1
+                            newCount = 1
+                        }
+
+                        // Update the state
+                        tapData.value = TapCountData(newCount, currentTime)
+
+                        // Check for completion
+                        if (newCount == 3) {
+                            action()
+                            // Immediately reset the count after execution
+                            tapData.value = TapCountData(0, 0L)
+                        }
+                    }
+                    // We intentionally leave onDoubleTap empty here since we only care about the count
+                )
+            }
+        }
+    )
+
+// In Layout.kt (Add near other gesture modifiers)
+
+fun Modifier.onHold(action: () -> Unit): Modifier =
+    this.then(
+        Modifier.pointerInput(Unit) {
+            detectTapGestures(
+                // Maps directly to SwiftUI's onLongPressGesture
+                onLongPress = { action() }
+            )
+        }
+    )
+
+
+// In Layout.kt (Replace the existing untilHold function)
+
+fun Modifier.untilHold(
+    onPress: (() -> Unit)? = null, // Action that runs when the screen is pressed down
+    onRelease: (() -> Unit)? = null // Action that runs when the finger is lifted
+): Modifier =
+    this.then(
+        // Use raw pointerInput to gain access to the low-level events required for onRelease
+        Modifier.pointerInput(Unit) {
+            // This lambda runs inside the PointerInputScope
+            // We use coroutineScope to access coroutine builders (like launch) and provide a fixed scope
+            coroutineScope {
+                detectTapGestures(
+                    // Maps to onPress (finger down)
+                    onPress = {
+                        onPress?.invoke()
+                        // Use a try-finally block to ensure onRelease is called after the press is finished
+                        try {
+                            // Wait for the finger to be released
+                            awaitRelease()
+                        } finally {
+                            // This code runs when the pointer is lifted (released)
+                            onRelease?.invoke()
+                        }
+                    }
+                    // We must leave all other callbacks (onTap, onDoubleTap, etc.) null here
+                    // to ensure this scope dominates the press/release cycle.
+                )
+            }
+        }
+    )
