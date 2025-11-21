@@ -692,6 +692,10 @@ class State<T>(initial: T) {
             println("Drift UI Error: .toggle() called on non-Boolean State.")
         }
     }
+    fun getSetter(): (T) -> Unit = { newValue ->
+        s.value = newValue
+    }
+
 
 }
 
@@ -1455,22 +1459,26 @@ val LocalSheetState = compositionLocalOf<SheetState> {
 
 
 
-// Replace your entire SheetHost function with this custom implementation:
-// Add these imports to the top of Layout.kt if not already present:
-// import androidx.compose.foundation.gestures.detectVerticalDragGestures
-// import androidx.compose.ui.platform.LocalConfiguration
-// import kotlin.math.abs
-
-// COMPLETE REPLACEMENT - Copy this ENTIRE function into Layout.kt
-
-// FIXED VERSION - Smooth and responsive with tween animation
-
 @Composable
 fun SheetHost(sheetState: SheetState, sheetModifier: SheetModifier?) {
     val isPresented by sheetState.isPresented
     val sheetContent by sheetState.content
 
-    if (!isPresented || sheetContent == null || sheetModifier == null) {
+    // Track if sheet should be visible (for animation)
+    var isVisible by remember { mutableStateOf(false) }
+
+    // Update visibility when isPresented changes
+    LaunchedEffect(isPresented) {
+        if (isPresented) {
+            isVisible = true
+        } else {
+            // Delay hiding to allow dismiss animation
+            delay(300) // Match animation duration
+            isVisible = false
+        }
+    }
+
+    if (!isVisible || sheetContent == null || sheetModifier == null) {
         return
     }
 
@@ -1498,6 +1506,17 @@ fun SheetHost(sheetState: SheetState, sheetModifier: SheetModifier?) {
     var targetFraction by remember { mutableStateOf(initialFraction) }
     var dragOffsetPx by remember { mutableStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
+
+    // Reset to initial fraction when sheet opens
+    LaunchedEffect(isPresented) {
+        if (isPresented) {
+            targetFraction = initialFraction
+            dragOffsetPx = 0f
+        } else {
+            // Animate to 0 when dismissed
+            targetFraction = 0f
+        }
+    }
 
     // Smooth tween animation instead of spring
     val animatedFraction by animateFloatAsState(
@@ -1546,9 +1565,9 @@ fun SheetHost(sheetState: SheetState, sheetModifier: SheetModifier?) {
 
         // Calculate actual height - use drag offset directly when dragging
         val displayFraction = if (isDragging) {
-            (animatedFraction + (dragOffsetPx / screenHeightPx)).coerceIn(0.05f, 1f)
+            (animatedFraction + (dragOffsetPx / screenHeightPx)).coerceIn(0f, 1f)
         } else {
-            animatedFraction.coerceIn(0.05f, 1f)
+            animatedFraction.coerceIn(0f, 1f)
         }
 
         Surface(
@@ -1638,50 +1657,40 @@ val Int.percentDetent get() = SheetDetent.Fraction(this / 100f)
 val SheetDetent.Companion.large get() = Large
 fun SheetDetent.Companion.fraction(value: Double) = SheetDetent.Fraction(value.toFloat())
 
-// Replace your entire NavigationStack function with this corrected version:
-
-// Replace your entire NavigationStack function with this corrected version:
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationStack(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    // --- Navigation state ---
     val navStack = remember { mutableStateListOf<@Composable () -> Unit>() }
     val navController = remember { DriftNavController(navStack) }
     val currentScreen = navStack.lastOrNull()
 
-    // --- Read navigation title ---
     var navTitle: String? = null
     modifier.foldIn(Unit) { _, el ->
         if (el is NavigationTitleModifier) navTitle = el.title
         Unit
     }
 
-    // --- Read back button hidden ---
     var hideBackButton = false
     modifier.foldIn(Unit) { _, el ->
         if (el is BackButtonHiddenModifier) hideBackButton = el.hidden
         Unit
     }
 
-    // --- Read preferredColorScheme ---
     var overrideScheme: DriftColorScheme? = null
     modifier.foldIn(Unit) { _, el ->
         if (el is PreferredColorSchemeModifier) overrideScheme = el.scheme
         Unit
     }
 
-    // --- Read sheet() modifier applied to NavigationStack ---
     var sheetModifier: SheetModifier? = null
     modifier.foldIn(Unit) { _, el ->
         if (el is SheetModifier) sheetModifier = el
         Unit
     }
 
-    // --- Read any toolbarStyle applied directly on NavigationStack ---
     var navToolbarFg: Color? = null
     var navToolbarBg: Color? = null
     var navToolbarElev: Dp? = null
@@ -1725,7 +1734,7 @@ fun NavigationStack(
         val toolbarItems = remember { mutableStateListOf<ToolbarEntry>() }
         val toolbarLayoutState = remember { mutableStateOf<Modifier?>(null) }
 
-        // CRITICAL FIX: Create internal sheet state that observes the external state
+        // Create internal sheet state that syncs with external
         val internalSheetState = remember {
             SheetState(
                 isPresented = mutableStateOf(false),
@@ -1733,32 +1742,32 @@ fun NavigationStack(
             )
         }
 
-        // CRITICAL FIX: Continuously sync external state to internal state
-        // This LaunchedEffect will rerun whenever sheetModifier.isPresented.value changes
+        // BIDIRECTIONAL SYNC LOGIC
         if (sheetModifier != null) {
-            val externalIsPresented by sheetModifier.isPresented
-            LaunchedEffect(externalIsPresented) {
-                println("NavigationStack: External state changed to $externalIsPresented")
-                internalSheetState.isPresented.value = externalIsPresented
-                internalSheetState.content.value = sheetModifier.content
+            val externalState = sheetModifier.isPresented
+            val externalSetter = externalState.getSetter()
+
+            // --- 1. External → Internal (Sheet is opened/closed by developer action)
+            LaunchedEffect(externalState.value) {
+                internalSheetState.isPresented.value = externalState.value
+                if (externalState.value) {
+                    internalSheetState.content.value = sheetModifier.content
+                }
             }
 
-            // ALSO sync back dismissals from the sheet to the external state
+            // --- 2. Internal → External (Sheet is dismissed by user swipe/scrim tap)
             val internalIsPresented by internalSheetState.isPresented
             LaunchedEffect(internalIsPresented) {
-                if (!internalIsPresented && externalIsPresented) {
-                    println("NavigationStack: Sheet was dismissed, syncing back to external")
-                    // Don't sync back - this creates a loop!
+                if (!internalIsPresented && externalState.value) {
+                    externalSetter(false)
                 }
             }
         }
 
-        // Provide composition locals
         CompositionLocalProvider(
             LocalToolbarState provides toolbarItems,
             LocalNavController provides navController,
-            LocalToolbarLayoutState provides toolbarLayoutState,
-            LocalSheetState provides internalSheetState
+            LocalToolbarLayoutState provides toolbarLayoutState
         ) {
             CompositionLocalProvider(
                 LocalToolbarForeground provides navToolbarFg,
@@ -1771,7 +1780,6 @@ fun NavigationStack(
                         .fillMaxSize()
                         .windowInsetsPadding(WindowInsets(0, 0, 0, 0))
                 ) {
-                    // Toolbar
                     val shouldShowToolbar = toolbarItems.isNotEmpty() ||
                             (navController.canPop() && !hideBackButton)
 
@@ -1786,7 +1794,6 @@ fun NavigationStack(
                         )
                     }
 
-                    // Content area
                     Box(Modifier.fillMaxSize()) {
                         if (currentScreen == null) content()
                         else currentScreen.invoke()
@@ -1795,11 +1802,9 @@ fun NavigationStack(
             }
         }
 
-        // Render the sheet on top of everything
-        // Pass the INTERNAL sheet state (which is being observed)
+        // Render sheet if present
         SheetHost(internalSheetState, sheetModifier)
 
-        // Cleanup
         DisposableEffect(Unit) {
             onDispose {
                 toolbarItems.clear()
