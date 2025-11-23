@@ -273,6 +273,42 @@ fun MyScreen() {
 
 ```
 
+23. Border & Shadow Modifiers: [shazan is my custom color]
+RoundedRectangle(width = 50, height = 50, cornerRadius = 8, Modifier.foregroundStyle(color).border(color = Color.shazan, width = 2).shadow(radius = 18, color = Color.yellow))
+
+24. PenTool 🎉
+```
+  PenTool(
+                color = Color.Magenta,
+                width = 18f,
+                smooth = false,
+                modifier = Modifier
+                    .frame(width = 330, height = 500)
+                    .background(Color.White)
+                    .border(width = 3, color = Color.Black)
+            )
+```
+
+25. EraserTool (2 types):
+```
+Type 1: [Erases strokewise]
+EraserTool(
+                        path = pathState,
+                        radius = 30f,
+                        type = EraserType.Line,   //difference
+                        modifier = Modifier
+                            .frame(300, 400)
+                    )
+
+Type 2: [Like Real Eraser]
+EraserTool(
+                        path = pathState,
+                        radius = 30f,
+                        type = EraserType.Area, //difference
+                        modifier = Modifier
+                            .frame(300, 400)
+                    )
+```
 
 Steps to Use DriftUI:
 1. Create a new Module of type Android Library
