@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
 
-        DrawingScreen()
+        DrawingScreen2()
 
         }
     }
@@ -89,6 +89,8 @@ fun DrawingScreen() {
 
     val pathState = remember { State(Path()) }
     val isEraserMode = remember { State(false) }
+    val eraserType = remember { State(false) }
+
 
     DriftView {
 
@@ -137,13 +139,24 @@ fun DrawingScreen() {
 
                 // ERASER OVERLAY
                 if (isEraserMode.value) {
-                    EraserTool(
-                        path = pathState,
-                        radius = 30f,
-                        type = EraserType.Area,
-                        modifier = Modifier
-                            .frame(300, 400)
-                    )
+                    if (eraserType.value) {
+                        EraserTool(
+                            path = pathState,
+                            radius = 30f,
+                            type = EraserType.Area,
+                            modifier = Modifier
+                                .frame(300, 400)
+                        )
+                    }
+                    if (!eraserType.value) {
+                        EraserTool(
+                            path = pathState,
+                            radius = 30f,
+                            type = EraserType.Line,
+                            modifier = Modifier
+                                .frame(300, 400)
+                        )
+                    }
                 }
             }
 
@@ -153,7 +166,8 @@ fun DrawingScreen() {
             // -----------------------------
             HStack(spacing = 20) {
 
-                Toggle("Eraser Mode", value = isEraserMode, Modifier.padding(bottom = 30))
+                Toggle("Mode", value = isEraserMode, Modifier.padding(bottom = 30))
+
 
                 Capsule(width = 10, height = 10, Modifier.foregroundStyle(
                     if (isEraserMode.value) Color.red else Color.green
@@ -166,11 +180,117 @@ fun DrawingScreen() {
                         .foregroundStyle(Color.gray).padding(bottom = 30)
                 )
             }
+            if (isEraserMode.value) {
+                VStack {
+                    Text("Eraser Type:")
+                    HStack {
+                        Toggle("Line", value = eraserType)
+                        Text("Area")
+
+
+                    }
+                }
+            }
 
         }
     }
 }
 
+
+
+@Composable
+fun DrawingScreen2() {
+
+    // 1. INITIALIZATION: One line. No 'remember', no 'Context'.
+    val controller = DrawController()
+
+    DriftView {
+        VStack(spacing = 20) {
+
+            // -----------------------------
+            // TOP BAR
+            // -----------------------------
+            HStack(Modifier.padding(horizontal = 20, vertical = 120)) {
+                Text("Simple Draw", Modifier.font(system(24, bold)))
+                Spacer()
+
+                // Human-readable actions
+                Button(action = { controller.undo() }) {
+                    Text("Undo", Modifier.foregroundStyle(Color.blue))
+                }
+
+                Button(action = { controller.redo() }) {
+                    Text("Redo", Modifier.foregroundStyle(Color.blue))
+                }
+
+                // "save()" handles permissions, bitmap creation, and context automatically
+                Button(action = { controller.save() }) {
+                    Text("Save", Modifier.foregroundStyle(Color.green))
+                }
+            }
+
+            // -----------------------------
+            // THE CANVAS
+            // -----------------------------
+            // The controller handles the Pen/Eraser layering logic internally.
+            DriftCanvas(
+                controller = controller,
+                Modifier
+                    .weight(1f)
+                    .frame(450, height = 800)
+                    .padding(bottom = 120)
+                    .background(Color.white)
+                    .cornerRadius(20)
+                    .shadow(2)
+            )
+
+            // -----------------------------
+// CONTROLS
+// -----------------------------
+            HStack(spacing = 20, modifier = Modifier.padding(bottom = 30)) {
+
+                // 1. Color Picker (Visible when drawing)
+                if (!controller.eraser.value) {
+                    ColorPicker(selectedColor = controller.color)
+                } else {
+                    // 2. Eraser Type Selector (Visible ONLY when erasing)
+                    // This is where you use the Types!
+                    HStack(spacing = 10) {
+                        Button(action = { controller.eraserType.set(EraserType.Area) }) {
+                            Text(
+                                "Real Eraser",
+                                // Highlight if selected
+                                Modifier.foregroundStyle(if(controller.eraserType.value == EraserType.Area) Color.black else Color.gray)
+                            )
+                        }
+
+                        // Divider
+                        Capsule(width = 1, height = 20, Modifier.background(Color.lightGray))
+
+                        Button(action = { controller.eraserType.set(EraserType.Line) }) {
+                            Text(
+                                "Line Eraser",
+                                // Highlight if selected
+                                Modifier.foregroundStyle(if(controller.eraserType.value == EraserType.Line) Color.black else Color.gray)
+                            )
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // 3. Main Toggle (The On/Off Switch)
+                Button(action = { controller.toggleEraser() }) {
+                    VStack {
+                        Capsule(width = 40, height = 4,
+                            Modifier.foregroundStyle(if (controller.eraser.value) Color.red else Color.gray))
+                        Text("Eraser", Modifier.foregroundStyle(Color.gray))
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 

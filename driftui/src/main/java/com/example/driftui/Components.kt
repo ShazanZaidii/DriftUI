@@ -1,5 +1,7 @@
 package com.example.driftui
 //This file is Components.kt
+// --- IMPORTS ---
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -72,11 +74,12 @@ import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.max
 import kotlin.math.min
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 // --- CUSTOM IMPORTS ---
 import com.example.driftui.Path
 import com.example.driftui.State
-// --- CUSTOM IMPORTS ---
-
 
 // ---------------------------------------------------------------------------------------------
 // SHAPES
@@ -609,8 +612,6 @@ fun ScrollView(
     )
 }
 
-//PenTool:
-
 @Composable
 fun Canvas(
     modifier: Modifier = Modifier,
@@ -628,67 +629,74 @@ fun PenTool(
     color: Color = Color.Black,
     width: Float = 3f,
     smooth: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDrawStart: () -> Unit = {}, // New callback for UNDO
+    onDrawEnd: () -> Unit = {}
 ) {
-    // We use a mutable state to force re-composition after every point is added.
     val lastPointAdded = remember { mutableStateOf(Offset.Zero) }
-
     val internal = remember { Path() }
     val actualPath = path?.value ?: internal
 
     Canvas(
         modifier = modifier
-            .pointerInput(actualPath) {
+            // FIX 1: Add color/width to keys so it updates immediately
+            .pointerInput(actualPath, color, width) {
                 awaitEachGesture {
                     val canvasSize = size
-
-                    // 1. Wait for first finger down
                     val down = awaitFirstDown()
 
-                    // Clamp the starting position to ensure it's inside the bounds
+                    // FIX 2: Trigger snapshot BEFORE drawing starts
+                    onDrawStart()
+
                     val clampedStart = clampOffset(down.position, canvasSize)
+                    actualPath.start(clampedStart, color, width)
 
-                    actualPath.start(clampedStart)
                     lastPointAdded.value = clampedStart
-
                     var change: PointerInputChange
 
-                    // 2. Track all movements until finger lifts
                     do {
                         val event = awaitPointerEvent()
                         change = event.changes.first()
 
                         if (change.pressed) {
-                            // Clamp the new position to the Canvas bounds
                             val clampedPosition = clampOffset(change.position, canvasSize)
-
                             actualPath.lineTo(clampedPosition)
-
-                            // Update state to trigger redraw/recomposition
                             lastPointAdded.value = clampedPosition
-
                             change.consumePositionChange()
                         }
-
                     } while (change.pressed)
 
-                    // 3. When finger lifts, apply smoothing and finish the stroke
                     if (smooth) actualPath.smoothAllStrokes()
-
                     lastPointAdded.value = Offset.Zero
-                    actualPath.finish() // Clear current stroke holder in Path object
+                    actualPath.finish()
+                    onDrawEnd()
                 }
             }
-
     ) {
-        // Read lastPointAdded state to ensure this block re-runs.
-        lastPointAdded.value
+        lastPointAdded.value // force recompose
 
-        drawPath(
-            path = actualPath.toComposePath(),
-            color = color,
-            style = Stroke(width)
-        )
+        // DRAW EACH STROKE INDIVIDUALLY
+        actualPath.strokes.forEach { strokeData ->
+            if (strokeData.points.isNotEmpty()) {
+                val composePath = androidx.compose.ui.graphics.Path()
+                composePath.moveTo(strokeData.points.first().x, strokeData.points.first().y)
+
+                for (i in 1 until strokeData.points.size) {
+                    val p = strokeData.points[i]
+                    composePath.lineTo(p.x, p.y)
+                }
+
+                drawPath(
+                    path = composePath,
+                    color = strokeData.color,
+                    style = Stroke(
+                        width = strokeData.width,
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round
+                    )
+                )
+            }
+        }
     }
 }
 
@@ -703,7 +711,9 @@ fun EraserTool(
     path: State<Path>,
     type: EraserType = EraserType.Area, // Default, but you can change it
     radius: Float = 30f,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDrawStart: () -> Unit = {}, // New callback
+    onDrawEnd: () -> Unit = {}
 ) {
     val forceRecompose = remember { mutableStateOf(0) }
     val actualPath = path.value
@@ -714,10 +724,15 @@ fun EraserTool(
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(actualPath) {
+            // Add keys to ensure it stays fresh
+            .pointerInput(actualPath, type, radius) {
                 awaitEachGesture {
                     val canvasSize = size
                     val down = awaitFirstDown()
+
+                    // Trigger snapshot BEFORE erasing
+                    onDrawStart()
+
                     var change: PointerInputChange? = down
 
                     while (change != null && change.pressed) {
@@ -727,14 +742,9 @@ fun EraserTool(
                         // Update cursor position
                         currentEraserPos.value = clamped
 
-                        // -------------------------------------------------
-                        // HERE IS THE CHOICE LOGIC
-                        // -------------------------------------------------
                         val removed = if (type == EraserType.Line) {
-                            // Old behavior: Deletes the entire stroke instantly
                             actualPath.removeStrokeAt(clamped, radius)
                         } else {
-                            // New behavior: Cuts the stroke like a real eraser
                             actualPath.eraseAreaAt(clamped, radius)
                         }
 
@@ -748,6 +758,7 @@ fun EraserTool(
                         change = event.changes.firstOrNull()
                     }
                     currentEraserPos.value = null
+                    onDrawEnd()
                 }
             }
     ) {
@@ -779,4 +790,78 @@ private fun clampOffset(offset: Offset, size: IntSize): Offset {
     val clampedX = max(0f, min(x, size.width.toFloat()))
     val clampedY = max(0f, min(y, size.height.toFloat()))
     return Offset(clampedX, clampedY)
+}
+
+// Add to Components.kt
+
+@Composable
+fun ColorPicker(
+    selectedColor: State<Color>,
+    colors: List<Color> = listOf(
+        Color.black, Color.red, Color.blue, Color.green,
+        Color.yellow, Color.magenta, Color.cyan, Color.gray
+    ),
+    modifier: Modifier = Modifier
+) {
+    val b = selectedColor.binding()
+
+    HStack(spacing = 10, modifier = modifier.horizontalScroll(rememberScrollState())) {
+        colors.forEach { color ->
+            val isSelected = color == b.value
+
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(Circle())
+                    .background(color)
+                    .border(
+                        width = if (isSelected) 3 else 0,
+                        color = if (isSelected) driftColors.text else Color.Transparent
+                    )
+                    .onTapGesture {
+                        b.set(color)
+                    }
+            )
+        }
+    }
+}
+
+// ... (Your existing PenTool, EraserTool, etc.) ...
+
+/**
+ * The Magic Wrapper.
+ * Handles layering, tools, and auto-saving history.
+ */
+@Composable
+fun DriftCanvas(
+    controller: DriftDrawController,
+    modifier: Modifier = Modifier
+) {
+    // FIX 3: Bind snapshot to onDrawStart instead of onDrawEnd
+    val autoSnapshot = { controller.snapshot() }
+
+    ZStack(modifier = modifier) {
+        // LAYER 1: PEN
+        // It listens to the controller's path and color
+        PenTool(
+            path = controller.path,
+            color = controller.color.value,
+            width = controller.width.value,
+            onDrawStart = autoSnapshot, // SNAPSHOT HERE
+            onDrawEnd = {}, // No op
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // LAYER 2: ERASER
+        // Auto-appears based on controller.eraser state
+        if (controller.eraser.value) {
+            EraserTool(
+                path = controller.path,
+                type = controller.eraserType.value,
+                onDrawStart = autoSnapshot, // SNAPSHOT HERE
+                onDrawEnd = {}, // No op
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
 }
