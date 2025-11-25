@@ -311,44 +311,6 @@ EraserTool(
 ```
 26. ColorPicker, Undo/Redo, SaveToGallery: [Complete Code]
 ```
-package com.example.myapplication
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment.Companion.Rectangle
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
-import androidx.compose.ui.zIndex
-import androidx.core.view.WindowCompat
-import com.example.driftui.DriftView
-import com.example.driftui.NavigationStack
-import com.example.driftui.VStack
-import com.example.driftui.darkMode
-import com.example.driftui.lightMode
-import com.example.driftui.*
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-//        WindowCompat.setDecorFitsSystemWindows(window, true)
-        super.onCreate(savedInstanceState)
-        setContent {
-
-        DrawingScreen2()
-
-        }
-    }
-}
-
-
-
 
 @Composable
 fun DrawingScreen2() {
@@ -359,9 +321,7 @@ fun DrawingScreen2() {
     DriftView {
         VStack(spacing = 20) {
 
-            // -----------------------------
-            // TOP BAR
-            // -----------------------------
+            // ---------Top Bar
             HStack(Modifier.padding(horizontal = 20, vertical = 120)) {
                 Text("Simple Draw", Modifier.font(system(24, bold)))
                 Spacer()
@@ -381,9 +341,7 @@ fun DrawingScreen2() {
                 }
             }
 
-            // -----------------------------
-            // THE CANVAS
-            // -----------------------------
+            // ----------CANVAS:
             // The controller handles the Pen/Eraser layering logic internally.
             DriftCanvas(
                 controller = controller,
@@ -396,9 +354,7 @@ fun DrawingScreen2() {
                     .shadow(2)
             )
 
-            // -----------------------------
-// CONTROLS
-// -----------------------------
+            //-------- Controls:
             HStack(spacing = 20, modifier = Modifier.padding(bottom = 30)) {
 
                 // 1. Color Picker (Visible when drawing)
@@ -424,10 +380,7 @@ fun DrawingScreen2() {
                                 "Line Eraser",
                                 // Highlight if selected
                                 Modifier.foregroundStyle(if(controller.eraserType.value == EraserType.Line) Color.black else Color.gray)
-                            )
-                        }
-                    }
-                }
+                            )}}}
 
                 Spacer()
 
@@ -437,18 +390,62 @@ fun DrawingScreen2() {
                         Capsule(width = 40, height = 4,
                             Modifier.foregroundStyle(if (controller.eraser.value) Color.red else Color.gray))
                         Text("Eraser", Modifier.foregroundStyle(Color.gray))
-                    }
-                }
-            }
-        }
-    }
-}
+                    }}}}}}
 
 
 
 
 ```
+27. SOUND ENGINE (Advanced! You are gonna be so happy about this):
+```
+//Simple:
+   playSound(file = "chaloo.mp3")
 
+//Advanced: (By passing parameters):
+playSound(file = "lofi.mp3", pitch = 1.0, speed = 1.2, pan = 1.0, panEnd = -1.0,backgroundPlay = false, loop = true, stopSystemAudio = true)
+
+List of Acceptable Paramters:
+        file: String,
+        volume: Double, // To set volume
+        pitch: Double,
+        speed: Double,
+        pan: Double,  // pan = 1 sets the audio to hard right, while -1 sets it to hard left and 0 is the middle.
+        panEnd: Double?,   // If pan is set to -1 and panEnd is set to 1 then sound will start from left and will go into the right ear. 
+        startTime: Int, //In milliseconds
+        endTime: Int, //In milliseconds
+        fadeIn: Int,
+        backgroundPlay: Boolean, //To allow app to keep playing music when the user has minimised it.
+        stopSystemAudio: Boolean, //To stop all other system sounds to play current sound
+        override: Boolean, //Set to true if you dont want the sound to start echoing if user spam presses a button
+        loop: Boolean // To loop the audio
+
+```
+28. Haptics:
+```
+//[You can use as action in buttons or however you like, You may feel selection is stronger than success so use it as per your desire.]
+
+//Haptic1:
+haptic(Haptic.Selection)
+
+//Haptic2:
+haptic(Haptic.Light)
+
+//Haptic3
+haptic(Haptic.Medium)           
+
+//Haptic4
+haptic(Haptic.Heavy)
+           
+//Haptic5
+haptic(Haptic.Success)
+
+//Haptic6
+haptic(Haptic.Warning)
+
+//Haptic7
+haptic(Haptic.Error)
+            
+```
 Steps to Use DriftUI:
 1. Create a new Module of type Android Library
 2. Name it driftui
