@@ -6,7 +6,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.DisposableEffect // Added
+import androidx.compose.runtime.LaunchedEffect // Added
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 // ---------------------------------------------------------------------------------------------
 // ALIGNMENTS
 // ---------------------------------------------------------------------------------------------
@@ -65,12 +74,59 @@ fun ZStack(
     Box(modifier = modifier, contentAlignment = contentAlignment, content = content)
 }
 
+// In LayoutPrimitives.kt
+
+// In LayoutPrimitives.kt
+
+// In LayoutPrimitives.kt
+
 @Composable
-fun DriftView(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+fun DriftView(
+    modifier: Modifier = Modifier,
+    blockBackgroundAudio: Boolean = false,
+    content: @Composable BoxScope.() -> Unit
+) {
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // 1. Initialize Audio Engine
+    LaunchedEffect(Unit) {
+        DriftAudio.initialize(context)
+        DriftHaptics.initialize(context)
+    }
+
+    // 2. Handle System Silence (FIXED: Pass context explicitly)
+    if (blockBackgroundAudio) {
+        DisposableEffect(Unit) {
+            // This now uses 'context' directly, skipping the singleton null check
+            DriftAudio.requestSilence(context)
+
+            onDispose {
+                DriftAudio.releaseSilence(context)
+            }
+        }
+    }
+
+    // 3. Lifecycle Observer
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                DriftAudio.onAppPause()
+            } else if (event == Lifecycle.Event.ON_RESUME) {
+                DriftAudio.onAppResume()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize().background(driftColors.background),
         contentAlignment = Alignment.Center, content = content)
 }
-
 
 // ---------------------------------------------------------------------------------------------
 // SPACER
