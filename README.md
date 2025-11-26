@@ -396,7 +396,7 @@ fun DrawingScreen2() {
 
 
 ```
-27. SOUND ENGINE (Advanced! You are gonna be so happy about this):
+27. SOUND ENGINE (Advanced!):
 ```
 //Simple:
    playSound(file = "chaloo.mp3")
@@ -445,6 +445,18 @@ haptic(Haptic.Warning)
 //Haptic7
 haptic(Haptic.Error)
             
+```
+
+29. Storage Persistence Type1 (For light data like @AppStorage):
+```
+var username = Storage(key = "username", defaultValue = "")
+
+    DriftView {
+        VStack(spacing = 20) {
+            TextField(placeholder = "Username",value = username)
+            Text("Name is ${username.value}")
+        }
+    }
 ```
 Steps to Use DriftUI:
 1. Create a new Module of type Android Library
