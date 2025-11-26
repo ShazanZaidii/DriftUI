@@ -94,6 +94,7 @@ fun DriftView(
     LaunchedEffect(Unit) {
         DriftAudio.initialize(context)
         DriftHaptics.initialize(context)
+        DriftStorage.initialize(context)
     }
 
     // 2. Handle System Silence (FIXED: Pass context explicitly)

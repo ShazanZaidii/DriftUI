@@ -77,6 +77,7 @@ import kotlin.math.min
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.runtime.MutableState
 // --- CUSTOM IMPORTS ---
 import com.example.driftui.Path
 import com.example.driftui.State
@@ -251,11 +252,15 @@ fun TextField(
 @Composable
 fun TextField(
     placeholder: String,
-    value: State<String>, // RESTORED
+    value: MutableState<String>, // Accepts standard Compose/Storage state
     modifier: Modifier = Modifier
 ) {
-    val b = value.binding()
-    TextField(placeholder, b.value, b.set, modifier)
+    TextField(
+        placeholder = placeholder,
+        text = value.value,
+        onTextChange = { value.value = it },
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -294,11 +299,15 @@ fun SecureField(
 @Composable
 fun SecureField(
     placeholder: String,
-    value: State<String>, // RESTORED
+    value: MutableState<String>,
     modifier: Modifier = Modifier
 ) {
-    val b = value.binding()
-    SecureField(placeholder, b.value, b.set, modifier)
+    SecureField(
+        placeholder = placeholder,
+        text = value.value,
+        onTextChange = { value.value = it },
+        modifier = modifier
+    )
 }
 
 
