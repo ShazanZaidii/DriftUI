@@ -12,12 +12,20 @@ import kotlin.reflect.KProperty
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+// Removed RequiresApi import
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.asAndroidPath
+import java.util.UUID
 
+
+
+
+//UUID:
+fun UUID(): UUID = UUID.randomUUID()
 
 // -----------------------------------------
 // STATE<T>
@@ -92,10 +100,6 @@ inline fun <reified T : ObservableObject> ObservedObject(noinline factory: () ->
 }
 
 // Save to gallery:
-
-
-
-// ... imports ...
 
 fun savePathToGallery(context: Context, path: Path, width: Int, height: Int): Boolean {
     try {
@@ -181,22 +185,28 @@ class DriftDrawController(private val context: Context) {
 
     // --- ACTIONS ---
 
+    // FIX: Removed @RequiresApi and used standard Kotlin List functions
     fun undo() {
         if (undoStack.isNotEmpty()) {
             // Save current state to Redo stack
             redoStack.add(path.value.copy())
-            // Pop from Undo stack and set as current
-            val previous = undoStack.removeLast()
+
+            // Pop from Undo stack using index (Works on ALL Android versions)
+            val previous = undoStack.removeAt(undoStack.lastIndex)
+
             path.set(previous)
         }
     }
 
+    // FIX: Removed @RequiresApi and used standard Kotlin List functions
     fun redo() {
         if (redoStack.isNotEmpty()) {
             // Save current state to Undo stack
             undoStack.add(path.value.copy())
-            // Pop from Redo stack and set as current
-            val next = redoStack.removeLast()
+
+            // Pop from Redo stack using index (Works on ALL Android versions)
+            val next = redoStack.removeAt(redoStack.lastIndex)
+
             path.set(next)
         }
     }

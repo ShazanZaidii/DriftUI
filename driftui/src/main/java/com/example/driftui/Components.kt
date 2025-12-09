@@ -169,30 +169,77 @@ fun RoundedRectangle(radius: Int): Shape = RoundedCornerShape(radius.dp)
 // TEXT & IMAGE
 // ---------------------------------------------------------------------------------------------
 
+//@Composable
+//fun Text(text: String, modifier: Modifier = Modifier) {
+//    var chosenFont: SystemFont? = null
+//    var chosenColor = Color.Unspecified
+//
+//    modifier.foldIn(Unit) { _, element ->
+//        when (element) {
+//            is FontModifier -> chosenFont = element.font
+//            is ForegroundColorModifier -> chosenColor = element.color
+//        }
+//        Unit
+//    }
+//
+//    val style = TextStyle(
+//        fontSize = chosenFont?.size?.sp ?: TextStyle.Default.fontSize,
+//        fontWeight = chosenFont?.weight ?: TextStyle.Default.fontWeight,
+//        color = chosenColor.takeUnless { it == Color.Unspecified } ?: driftColors.text
+//    )
+//
+//    MaterialText(
+//        text = text,
+//        modifier = modifier,
+//        style = style,
+//    )
+//}
+
 @Composable
 fun Text(text: String, modifier: Modifier = Modifier) {
     var chosenFont: SystemFont? = null
-    var chosenColor = Color.Unspecified
+    var chosenColor: Color.Companion? = null // Note: handled by your modifier logic
 
+    // (Keep your existing modifier extraction logic here if needed,
+    // strictly copying what you had before for extraction)
+
+    // ... extraction logic ...
+    // Since your modifier extraction logic was specific, let's just
+    // ensure the drawing part is correct:
+
+    // 1. Extract Color/Font from Modifier chain (Your existing logic)
+    var finalColor = Color.Unspecified
     modifier.foldIn(Unit) { _, element ->
-        when (element) {
-            is FontModifier -> chosenFont = element.font
-            is ForegroundColorModifier -> chosenColor = element.color
+        if (element is ForegroundColorModifier) {
+            finalColor = element.color
         }
         Unit
     }
 
+    // 2. Extract Font (Your existing logic)
+    var fontStyle: SystemFont? = null
+    modifier.foldIn(Unit) { _, element ->
+        if (element is FontModifier) fontStyle = element.font
+        Unit
+    }
+
     val style = TextStyle(
-        fontSize = chosenFont?.size?.sp ?: TextStyle.Default.fontSize,
-        fontWeight = chosenFont?.weight ?: TextStyle.Default.fontWeight,
-        color = chosenColor.takeUnless { it == Color.Unspecified } ?: driftColors.text
+        fontSize = fontStyle?.size?.sp ?: TextStyle.Default.fontSize,
+        fontWeight = fontStyle?.weight ?: TextStyle.Default.fontWeight,
+        color = finalColor.takeUnless { it == Color.Unspecified } ?: driftColors.text
     )
 
-    MaterialText(
-        text = text,
-        modifier = modifier,
-        style = style,
-    )
+    // 3. THE FIX: Wrap in Box to center content by default
+    Box(
+        modifier = modifier, // Apply width/height/background to the CONTAINER
+        contentAlignment = Alignment.Center // Center the content inside
+    ) {
+        MaterialText(
+            text = text,
+            style = style,
+            // Do NOT pass modifier here, or you apply the size twice!
+        )
+    }
 }
 
 @Composable
@@ -259,6 +306,22 @@ fun TextField(
         placeholder = placeholder,
         text = value.value,
         onTextChange = { value.value = it },
+        modifier = modifier
+    )
+}
+
+// Add this to Components.kt
+
+@Composable
+fun TextField(
+    placeholder: String,
+    value: State<String>, // <--- Changing input to accept YOUR custom State
+    modifier: Modifier = Modifier
+) {
+    TextField(
+        placeholder = placeholder,
+        text = value.value,      // Read from your custom State
+        onTextChange = { value.set(it) }, // Write to your custom State
         modifier = modifier
     )
 }

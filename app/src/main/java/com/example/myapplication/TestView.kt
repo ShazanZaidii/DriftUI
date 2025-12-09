@@ -22,11 +22,12 @@ import com.example.driftui.*
 @Composable
 fun test2() {
     var username = Storage(key = "username", defaultValue = "")
+    val id = UUID()
 
     DriftView {
         VStack(spacing = 20) {
             TextField(placeholder = "Username",value = username)
-            Text("Name is ${username.value}")
+            Text("Name is ${id}", Modifier.foregroundStyle(Color.blue))
         }
     }
 }

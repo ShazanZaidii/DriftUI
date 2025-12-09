@@ -2,6 +2,8 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
+
 }
 
 android {
@@ -40,4 +42,13 @@ dependencies {
     // MVVM Dependency that was missing
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
     implementation("androidx.compose.material3:material3:1.2.0")
+
+    // GSON for JSON serialization/deserialization
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Kotlin Reflection (required for accessing properties via KProperty)
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.22")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+
 }
