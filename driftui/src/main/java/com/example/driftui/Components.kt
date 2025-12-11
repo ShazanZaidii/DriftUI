@@ -169,45 +169,12 @@ fun RoundedRectangle(radius: Int): Shape = RoundedCornerShape(radius.dp)
 // TEXT & IMAGE
 // ---------------------------------------------------------------------------------------------
 
-//@Composable
-//fun Text(text: String, modifier: Modifier = Modifier) {
-//    var chosenFont: SystemFont? = null
-//    var chosenColor = Color.Unspecified
-//
-//    modifier.foldIn(Unit) { _, element ->
-//        when (element) {
-//            is FontModifier -> chosenFont = element.font
-//            is ForegroundColorModifier -> chosenColor = element.color
-//        }
-//        Unit
-//    }
-//
-//    val style = TextStyle(
-//        fontSize = chosenFont?.size?.sp ?: TextStyle.Default.fontSize,
-//        fontWeight = chosenFont?.weight ?: TextStyle.Default.fontWeight,
-//        color = chosenColor.takeUnless { it == Color.Unspecified } ?: driftColors.text
-//    )
-//
-//    MaterialText(
-//        text = text,
-//        modifier = modifier,
-//        style = style,
-//    )
-//}
-
 @Composable
 fun Text(text: String, modifier: Modifier = Modifier) {
     var chosenFont: SystemFont? = null
-    var chosenColor: Color.Companion? = null // Note: handled by your modifier logic
+    var chosenColor: Color.Companion? = null
 
-    // (Keep your existing modifier extraction logic here if needed,
-    // strictly copying what you had before for extraction)
-
-    // ... extraction logic ...
-    // Since your modifier extraction logic was specific, let's just
-    // ensure the drawing part is correct:
-
-    // 1. Extract Color/Font from Modifier chain (Your existing logic)
+    // 1. Extract Color/Font from Modifier chain
     var finalColor = Color.Unspecified
     modifier.foldIn(Unit) { _, element ->
         if (element is ForegroundColorModifier) {
@@ -216,7 +183,7 @@ fun Text(text: String, modifier: Modifier = Modifier) {
         Unit
     }
 
-    // 2. Extract Font (Your existing logic)
+    // 2. Extract Font
     var fontStyle: SystemFont? = null
     modifier.foldIn(Unit) { _, element ->
         if (element is FontModifier) fontStyle = element.font
@@ -229,15 +196,14 @@ fun Text(text: String, modifier: Modifier = Modifier) {
         color = finalColor.takeUnless { it == Color.Unspecified } ?: driftColors.text
     )
 
-    // 3. THE FIX: Wrap in Box to center content by default
+    // 3. Wrap in Box to center content by default
     Box(
-        modifier = modifier, // Apply width/height/background to the CONTAINER
-        contentAlignment = Alignment.Center // Center the content inside
+        modifier = modifier,
+        contentAlignment = Alignment.Center
     ) {
         MaterialText(
             text = text,
             style = style,
-            // Do NOT pass modifier here, or you apply the size twice!
         )
     }
 }
@@ -285,7 +251,6 @@ fun TextField(
                         text = placeholder,
                         style = TextStyle.Default.copy(
                             fontSize = 16.sp,
-//                            color = driftColors.text.copy(alpha = 0.6f)
                             color = Color.Gray
                         )
                     )
@@ -310,7 +275,6 @@ fun TextField(
     )
 }
 
-// Add this to Components.kt
 
 @Composable
 fun TextField(
@@ -408,6 +372,9 @@ fun Divider(
     )
 }
 
+// --- INTELLIGENT LISTS (THE FIX) ---
+
+// 1. Standalone List (Normal behavior)
 @Composable
 fun List(
     alignment: Alignment = center,
@@ -426,6 +393,27 @@ fun List(
     }
 }
 
+// 2. VStack Context List (Reactive Spacing)
+@Composable
+fun ColumnScope.List(
+    alignment: Alignment = center,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    // FIX: weight(1f, fill = false) allows the list to SHRINK if content is small
+    Box(Modifier.weight(1f, fill = false), contentAlignment = alignment) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8)
+                .clip(RoundedRectangle(10))
+                .background(driftColors.fieldBackground.copy(alpha = 0.2f)),
+            content = content
+        )
+    }
+}
+
+// 3. Standalone Data List (Normal behavior)
 @Composable
 fun <T> List(
     items: List<T>,
@@ -435,6 +423,27 @@ fun <T> List(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 8),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        itemsIndexed(items) { index, item ->
+            rowContent(item)
+            if (index < items.size - 1) Divider()
+        }
+    }
+}
+
+// 4. VStack Context Data List (Reactive Spacing)
+@Composable
+fun <T> ColumnScope.List(
+    items: List<T>,
+    alignment: Alignment = center,
+    modifier: Modifier = Modifier,
+    rowContent: @Composable (T) -> Unit
+) {
+    LazyColumn(
+        // FIX: weight(1f, fill = false) allows the list to SHRINK if content is small
+        modifier = modifier.weight(1f, fill = false).fillMaxWidth().padding(horizontal = 8),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

@@ -1,13 +1,14 @@
 package com.example.myapplication
 
 import com.example.driftui.ObservableObject
+import com.example.driftui.Published
 import com.example.driftui.State
 
 class LoginViewModel : ObservableObject() {
 
-    var email = State("")
-    var password = State("")
-    var isLoading = State(false)
+    var email = Published("")
+    var password = Published("")
+    var isLoading = Published(false)
 
     fun login() {
         isLoading.set(true)
