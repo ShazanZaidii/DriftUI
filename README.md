@@ -1,16 +1,17 @@
-Till now it supports SwiftUI like: 
-1. H,V and ZStacks -Same syntax, but you can wrap these in DriftView{} to center align and start modifying as in SwiftUI
-2. Paddings Example- Text("hello", Modifier.padding(leading = 20) <h3> Note: Paddings can't be negative </h3>
-3. Background & Color
-4. Shapes, ClipShape - Remember clipShape should be used before giving a background color
-5. Frame
-6. font modifier - To use this we need to remove default "import androidx.compose.material3.Text" and add "import com.example.driftui.Text" (if you dont modify)
-7. Images (the file shoud be saved in - app -> src -> main -> res -> drawable -> Your image )
+<h1>Till now it supports SwiftUI like: </h1>
+<h2>1. H,V and ZStacks -Same syntax, but you can wrap these in DriftView{} to center align and start modifying as in SwiftUI</h2>
+<h2>2. Paddings Example- Text("hello", Modifier.padding(leading = 20) </br> *****[Note: Paddings can't be negative]******</h2>
+<h2>3. Background & Color</h2>
+<h2>4. Shapes, ClipShape - Remember clipShape should be used before giving a background color</h2>
+<h2>5. Frame</h2>
+<h2>6. font modifier - To use this we need to remove default "import androidx.compose.material3.Text" and add "import com.example.driftui.Text" (if you dont modify)</h2>
+<h1>7. Images (the file shoud be saved in - app -> src -> main -> res -> drawable -> Your image )</h1>
+
 ```
 Image("//Image name goes here")
 
 ```
-8. TextField & SecureField(for passwords)
+<h1>8. TextField & SecureField(for passwords)</h1>
 
 ```
 // Defining variables
@@ -27,7 +28,8 @@ Image("//Image name goes here")
 
 
 ```   
-9. Buttons
+<h1>9. Buttons</h1>
+
 ```
 Button(
                         action = {
@@ -50,12 +52,14 @@ Button(
 
 
 
-10. Divider()
+<h1>10. Divider()</h1>
+
 ```
 Divider(color = Color.white, thickness = 5)
 ```
 
-11. Lists 
+<h1>11. Lists </h1>
+
 ```
 // Simple Implementation:
 List(alignment = center, modifier = Modifier.padding(top = 50)){
@@ -77,11 +81,14 @@ List(items = food, alignment = top, modifier = Modifier.padding(top = 50)) { ite
 
 ```
 
-12. MVVM (For sample refer - https://github.com/ShazanZaidii/DriftUI/tree/main/MVVM%20Implementation )
-13. NavigationStack and Toolbar
+<h1>12. MVVM (For sample refer - https://github.com/ShazanZaidii/DriftUI/tree/main/MVVM%20Implementation )</h1>
+
+<h1>13. NavigationStack and Toolbar</h1>
+
 Implementation:
 <img width="1728" height="1117" alt="Screenshot 2025-11-18 at 10 14 22 PM" src="https://github.com/user-attachments/assets/ed1cbe48-a8b2-4415-b0d6-5cd4fa2f3eac" />
-14. preferredColorScheme:
+
+<h1>14. preferredColorScheme:</h1>
 
 ```
 NavigationStack(Modifier.preferredColorScheme(lightMode // or DarkMode)){
@@ -89,14 +96,14 @@ NavigationStack(Modifier.preferredColorScheme(lightMode // or DarkMode)){
 }
 ```
 
-15. Dismis()-
+<h1>15. Dismis()-</h1>
 
 ```
 val dismiss = Dismiss()
 Button(dismiss) { Text("Dismiss" , Modifier.font(system(size = 28, weight = bold)))}
 ```
 
-16. Toolbar with modifiers -       
+<h1>16. Toolbar with modifiers -       </h1>
 
 <img width="1728" height="1117" alt="Screenshot 2025-11-20 at 1 44 09 PM" src="https://github.com/user-attachments/assets/0dbb3a48-4e5a-44e0-a403-e0474cee3b9c" />
 
@@ -131,7 +138,9 @@ NavigationStack(Modifier.toolbarStyle(foregroundColor = Color.shazan, background
 
     }
 ```
-17. Toggle: [Can accept modifiers- onColor, offColor, & thumbColor]
+
+<h1>17. Toggle: [Can accept modifiers- onColor, offColor, & thumbColor] </h1>
+
 ```
 // Type 1:
 val wifi = State(true)
@@ -158,7 +167,8 @@ Toggle(value = wifi, Modifier.toggleStyle(onColor = Color.teal, offColor = Color
 
 ```
 
-18. ScaleEffect, RotationEffect & Offsets: (Yes, offsets can be negative too, Below is an example of how to use offsets and scaleEffect inside a Toggle):
+<h1>18. ScaleEffect, RotationEffect & Offsets: (Yes, offsets can be negative too, Below is an example of how to use offsets and scaleEffect inside a Toggle):</h1>
+
 ```
  Toggle("Hello", value = wifi, Modifier
 .padding(top= 220)
@@ -168,12 +178,14 @@ Toggle(value = wifi, Modifier.toggleStyle(onColor = Color.teal, offColor = Color
 
 ```
 
-19. Opacity:
+<h1>19. Opacity:</h1>
+    
 ```
 Text("Shazan", Modifier.foregroundStyle(Color.white).font(system(size = 37)).zIndex(1f).padding(top = 90).opacity(0.5))
 
 ```
-20. Sliders:
+<h1>20. Sliders:</h1>
+
 ```
 Type1: Simple (no modifiers)
 var size = State(10)
@@ -194,7 +206,8 @@ Slider(
         )
 
 ```
-21. onDoubleTap, onTripleTap, onHold and untilHold (which accepts parameters) -
+<h1>21. onDoubleTap, onTripleTap, onHold and untilHold (which accepts parameters) -</h1>
+
 ```
 @Composable
 fun LoginScreenView2() {
@@ -226,7 +239,8 @@ fun LoginScreenView2() {
 }
 
 ```
-22. Sheets (To control them use a variable toggle dont use dismiss or app will crash)
+<h1>22. Sheets (To control them use a variable toggle dont use dismiss or app will crash)</h1>
+
 ```
 @Composable
 fun MyScreen() {
@@ -273,10 +287,12 @@ fun MyScreen() {
 
 ```
 
-23. Border & Shadow Modifiers: [shazan is my custom color]
+<h1>23. Border & Shadow Modifiers: [shazan is my custom color] </h1>
+
 RoundedRectangle(width = 50, height = 50, cornerRadius = 8, Modifier.foregroundStyle(color).border(color = Color.shazan, width = 2).shadow(radius = 18, color = Color.yellow))
 
-24. PenTool 🎉
+<h1>24. PenTool 🎉</h1>
+
 ```
   PenTool(
                 color = Color.Magenta,
@@ -289,7 +305,8 @@ RoundedRectangle(width = 50, height = 50, cornerRadius = 8, Modifier.foregroundS
             )
 ```
 
-25. EraserTool (2 types):
+<h1>25. EraserTool (2 types):</h1>
+
 ```
 Type 1: [Erases strokewise]
 EraserTool(
@@ -309,7 +326,8 @@ EraserTool(
                             .frame(300, 400)
                     )
 ```
-26. ColorPicker, Undo/Redo, SaveToGallery: [Complete Code]
+<h1>26. ColorPicker, Undo/Redo, SaveToGallery: [Complete Code]</h1>
+
 ```
 
 @Composable
@@ -396,7 +414,8 @@ fun DrawingScreen2() {
 
 
 ```
-27. SOUND ENGINE (Advanced!):
+<h1>27. SOUND ENGINE (Advanced!):</h1>
+
 ```
 //Simple:
    playSound(file = "chaloo.mp3")
@@ -420,7 +439,8 @@ List of Acceptable Paramters:
         loop: Boolean // To loop the audio
 
 ```
-28. Haptics:
+<h1>28. Haptics:</h1>
+
 ```
 //[You can use as action in buttons or however you like, You may feel selection is stronger than success so use it as per your desire.]
 
@@ -447,7 +467,8 @@ haptic(Haptic.Error)
             
 ```
 
-29. Storage Persistence Type1 (For light data like @AppStorage):
+<h1>29. Storage Persistence Type1 (For light data like @AppStorage):</h1>
+
 ```
 var username = Storage(key = "username", defaultValue = "")
 
@@ -457,7 +478,222 @@ var username = Storage(key = "username", defaultValue = "")
             Text("Name is ${username.value}")
         }
     }
+``` 
+
+<h1>30. Advanced Data Persistence -- DriftStore:</h1>
+
+
+## How To use:
+
+### 1\. Define your Data Model
+
+Just a standard Kotlin data class. No annotations required.
+
+```kotlin
+data class User(
+    val name: String,
+    val age: Int,
+    val isAdmin: Boolean = false
+)
 ```
+
+### 2\. Create a Store
+
+Initialize the store inside any Composable. It survives recompositions automatically.
+
+```kotlin
+@Composable
+fun UserListScreen() {
+    // Creates or opens "users_db"
+    val users = DriftStore("users_db", User::class)
+
+    DriftView {
+        // Your UI code...
+    }
+}
+```
+
+-----
+
+## CRUD Operations
+
+### Add Data
+
+```kotlin
+Button(onClick = {
+    users.add(User("Alice", 25))
+    users.add(User("Bob", 30))
+}) { Text("Add User") }
+```
+
+### Edit Data (Reactive)
+
+Find an item and modify it in place. The UI will refresh instantly.
+
+```kotlin
+val bob = users.items.find { it.name == "Bob" }
+
+// Safe edit (handles nulls automatically)
+users.edit(bob) {
+    age = 31
+    isAdmin = true
+}
+```
+
+### Remove Data
+
+```kotlin
+// Remove specific item
+users.remove(bob)
+
+// Remove by condition
+users.removeBy(User::name, "Alice")
+
+// Nuke table
+users.removeAll()
+```
+
+-----
+
+## Type-Safe Filtering
+
+Stop writing SQL strings. Use pure Kotlin syntax for fast, memory-safe filtering.
+
+### Basic Filters
+
+```kotlin
+// Exact match
+val admins = users.filter { it.isAdmin }
+
+// Ranges
+val adults = users.filter { it.age >= 18 }
+```
+
+### String Matching
+
+Supports all standard String operations.
+
+```kotlin
+// Starts/Ends with
+val aNames = users.filter { it.name.startsWith("A") }
+
+// Contains (Case Insensitive)
+val searchResults = users.filter { 
+    it.name.contains("bob", ignoreCase = true) 
+}
+```
+
+### Complex Logic
+
+Combine conditions freely.
+
+```kotlin
+val targetUsers = users.filter { 
+    (it.age > 20 && it.name.startsWith("J")) || it.isAdmin 
+}
+```
+
+-----
+
+## Sorting & Querying
+
+### Sorting
+
+Use the `Sort` helper for clean syntax.
+
+```kotlin
+// Simple sort
+val byAge = users.sort(Sort(User::age))
+
+// Reverse sort
+val byNameDesc = users.sort(Sort(User::name, Order.Descending))
+
+// Compound sort (Sort by Age, then Name)
+val complexSort = users.sort(
+    Sort(User::age, Order.Descending),
+    Sort(User::name)
+)
+```
+
+
+<h3>2. Sample Code (To CRUD, Search, Sort And Query/Filter):</h3>
+
+```
+
+//Data Model
+data class Model(
+    var name: String,
+    var age: Int
+)
+
+@Composable
+fun test4(){
+    //Creating a Store
+    val users = DriftStore("database", Model::class)
+
+    //Editing by first finding the id then passing it to edit.
+    val umair = users.items.find { it.name == "Umair" }
+    users.edit(umair){
+        age = 6
+    }
+
+    val selected2 = users.filter { it.name.startsWith("Ak") && it.name.endsWith("a") }
+
+    // Sorting users:
+    val sorted = users.sort(Sort(Model::name, Order.Descending)) //Using Descending Order
+    //CODE: val sorted = users.sort(Sort(Model::name)) //Using Ascending Order - No need to explicitly mention. It will be Ascending by default.
+
+    //For Compound Sorting-
+    // Code: val sorted = users.sort(Sort(Model::name, Order.Descending), Sort(Model::age, Order.Descending)) //Using Descending Order
+
+    DriftView() {
+        //Create
+        if(users.items.isEmpty()) {
+            Text("Add", Modifier.onTapGesture(action = {
+                users.add(Model("Sameer", 12))
+                users.add(Model("Akbar", 7))
+                users.add(Model("Akmala", 43))
+                users.add(Model("Akshara", 21))
+                users.add(Model("Umair",33))
+            }))
+        }
+
+        VStack {
+
+            if(!users.items.isEmpty()){
+                Text("Original Data:", Modifier.font(system(18, light)))
+                List(users.items){s->
+                    Text("${s.age}.  ${s.name}")
+                }
+
+                //Original List:
+
+                Spacer(13)
+                Text("Sorted Data:", Modifier.font(system(18, light)))
+                List(sorted) { s ->
+                    Text("${s.age}.  ${s.name}")
+                }
+                Spacer(13)
+                List(selected2){s->
+                    Text("${s.age}.  ${s.name}")
+                }
+
+            }
+
+            Text("Nuke", Modifier.padding(top = 70).onTapGesture(action = {users.removeAll()}))
+        }
+
+
+
+
+
+    }
+
+
+```
+
+
+**********</br>
 Steps to Use DriftUI:
 1. Create a new Module of type Android Library
 2. Name it driftui
