@@ -78,10 +78,41 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.runtime.MutableState
+
+import androidx.compose.ui.BiasAlignment
+import androidx.compose.ui.text.style.TextAlign
 // --- CUSTOM IMPORTS ---
 import com.example.driftui.Path
 import com.example.driftui.State
 
+//-----------------------------------------
+//ALIGNMENT EXTRACTOR:
+//-----------------------------------------
+@Composable
+private fun Modifier.getTextAlignment(): Pair<TextAlign, Alignment> {
+    var alignMod: TextAlignmentModifier? = null
+    this.foldIn(Unit) { _, element ->
+        if (element is TextAlignmentModifier) {
+            alignMod = element
+        }
+        Unit
+    }
+
+    val x = alignMod?.x ?: -1f // Default X: -1 (Left/Start)
+    val y = alignMod?.y ?: 0f  // Default Y: 0 (Vertically Centered)
+
+    // Calculate TextAlign (Horizontal)
+    val textAlign = when {
+        x < -0.2f -> TextAlign.Start
+        x > 0.2f  -> TextAlign.End
+        else      -> TextAlign.Center
+    }
+
+    // Calculate Box Alignment (Vertical + Horizontal positioning)
+    val alignment = BiasAlignment(x, y)
+
+    return textAlign to alignment
+}
 // ---------------------------------------------------------------------------------------------
 // SHAPES
 // ---------------------------------------------------------------------------------------------
@@ -236,23 +267,36 @@ fun TextField(
     onTextChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 1. Extract Styling
+    val customColor = modifier.getForegroundColor()
+    val (textAlign, contentAlign) = modifier.getTextAlignment()
+
+    val inputColor = customColor ?: driftColors.text
+    val placeholderColor = customColor ?: Color.Gray
+
     BasicTextField(
         value = text,
         onValueChange = onTextChange,
-        modifier = modifier, // use external modifier entirely
-        textStyle = TextStyle.Default.copy(fontSize = 16.sp),
+        modifier = modifier,
+        textStyle = TextStyle.Default.copy(
+            fontSize = 16.sp,
+            color = inputColor,
+            textAlign = textAlign // Apply horizontal text alignment
+        ),
         decorationBox = { inner ->
             Box(
-                modifier = Modifier
-                    .padding(horizontal = 8, vertical = 8) // inner padding only
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                contentAlignment = contentAlign // Apply Frame Alignment (x, y)
             ) {
                 if (text.isEmpty()) {
                     MaterialText(
                         text = placeholder,
                         style = TextStyle.Default.copy(
                             fontSize = 16.sp,
-                            color = Color.Gray
-                        )
+                            color = placeholderColor,
+                            textAlign = textAlign
+                        ),
+                        modifier = Modifier.fillMaxWidth() // Ensure placeholder fills width to respect alignment
                     )
                 }
                 inner()
@@ -290,6 +334,10 @@ fun TextField(
     )
 }
 
+// ---------------------------------------------------------------------------------------------
+// SECURE FIELD (Fixed & Complete)
+// ---------------------------------------------------------------------------------------------
+
 @Composable
 fun SecureField(
     placeholder: String,
@@ -297,24 +345,39 @@ fun SecureField(
     onTextChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 1. Extract Styling (Color & Alignment)
+    val customColor = modifier.getForegroundColor()
+    val (textAlign, contentAlign) = modifier.getTextAlignment()
+
+    // 2. Resolve Colors
+    // If you provided a color, use it. Otherwise, default to theme text / gray.
+    val inputColor = customColor ?: driftColors.text
+    val placeholderColor = customColor ?: Color.Gray
+
     BasicTextField(
         value = text,
         onValueChange = onTextChange,
-        modifier = modifier, // use external modifier entirely
-        textStyle = TextStyle.Default.copy(fontSize = 16.sp),
+        modifier = modifier,
+        textStyle = TextStyle.Default.copy(
+            fontSize = 16.sp,
+            color = inputColor,
+            textAlign = textAlign
+        ),
         visualTransformation = PasswordVisualTransformation(),
         decorationBox = { inner ->
             Box(
-                modifier = Modifier
-                    .padding(horizontal = 8, vertical = 8) // inner padding only
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                contentAlignment = contentAlign
             ) {
                 if (text.isEmpty()) {
                     MaterialText(
                         text = placeholder,
                         style = TextStyle.Default.copy(
                             fontSize = 16.sp,
-                            color = Color.Gray
-                        )
+                            color = placeholderColor, // Use custom color if provided
+                            textAlign = textAlign
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
                 inner()
@@ -323,6 +386,7 @@ fun SecureField(
     )
 }
 
+// Overload 1: For standard Compose MutableState
 @Composable
 fun SecureField(
     placeholder: String,
@@ -333,6 +397,21 @@ fun SecureField(
         placeholder = placeholder,
         text = value.value,
         onTextChange = { value.value = it },
+        modifier = modifier
+    )
+}
+
+// Overload 2: For YOUR Custom 'State' class (This fixes the error)
+@Composable
+fun SecureField(
+    placeholder: String,
+    value: State<String>,
+    modifier: Modifier = Modifier
+) {
+    SecureField(
+        placeholder = placeholder,
+        text = value.value,      // Read from your custom State
+        onTextChange = { value.set(it) }, // Write to your custom State
         modifier = modifier
     )
 }

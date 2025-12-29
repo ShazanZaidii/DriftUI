@@ -11,50 +11,91 @@ import kotlinx.coroutines.withContext
 import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.isAccessible
 
 // =============================================================================================
-// OPTIMIZATION: SCHEMA CACHE
+// OPTIMIZATION: SCHEMA CACHE & IDENTITY REFLECTION
 // =============================================================================================
 
 private object SchemaCache {
-    private val cache = Collections.synchronizedMap(mutableMapOf<KClass<*>, List<KProperty1<*, *>>>())
+    private val cache = Collections.synchronizedMap(mutableMapOf<KClass<*>, SchemaData>())
 
-    fun <T : Any> get(kClass: KClass<T>): List<KProperty1<T, *>> {
+    data class SchemaData(
+        val allProps: List<KProperty1<*, *>>,
+        val idProp: KMutableProperty1<Any, *>? // Mutable ID property if it exists
+    )
+
+    fun <T : Any> get(kClass: KClass<T>): SchemaData {
         @Suppress("UNCHECKED_CAST")
         return cache.getOrPut(kClass) {
-            kClass.declaredMemberProperties.toList().onEach { it.isAccessible = true }
-        } as List<KProperty1<T, *>>
+            val props = kClass.declaredMemberProperties.toList().onEach { it.isAccessible = true }
+            // Find a property named "id" that is mutable (var) and numeric
+            val id = props.find { it.name.equals("id", ignoreCase = true) && it is KMutableProperty1 }
+                    as? KMutableProperty1<Any, *>
+            SchemaData(props, id)
+        }
     }
 }
 
 // =============================================================================================
-// TYPES
+// TYPES & ENUMS
 // =============================================================================================
 
 enum class Order { Ascending, Descending }
 data class SortRule(val property: String, val order: Order)
+enum class SyncAction { Insert, Update, Delete }
 
-fun <T> Sort(prop: KProperty1<T, *>, order: Order = Order.Ascending): SortRule {
-    return SortRule(prop.name, order)
-}
+fun <T> Sort(prop: KProperty1<T, *>, order: Order = Order.Ascending) = SortRule(prop.name, order)
 
 // =============================================================================================
-// THE REGISTRY
+// THE REGISTRY (HYBRID STORAGE)
 // =============================================================================================
 
 object DriftRegistry {
+    // FALLBACK: Used only if the object has no 'id' field
     val sourceMap = WeakHashMap<Any, String>()
     val idMap = WeakHashMap<Any, Long>()
+
     private val dbCache = mutableMapOf<String, DriftDatabaseHelper>()
     var context: Context? = null
 
     fun getDb(name: String): DriftDatabaseHelper {
         val ctx = context ?: throw IllegalStateException("DriftContext not initialized! Call DriftStore inside a Composable first.")
         return dbCache.getOrPut(name) { DriftDatabaseHelper(ctx, name) }
+    }
+
+    // IDENTITY HELPER: Checks Object Field -> Falls back to Map
+    fun getId(item: Any): Long {
+        val schema = SchemaCache.get(item::class)
+        if (schema.idProp != null) {
+            // Try to read 'id' from the object
+            val idVal = schema.idProp.getter.call(item)
+            if (idVal is Number) return idVal.toLong()
+        }
+        // Fallback
+        return idMap[item] ?: -1L
+    }
+
+    fun setId(item: Any, id: Long) {
+        val schema = SchemaCache.get(item::class)
+        if (schema.idProp != null) {
+            try {
+                // Try to write 'id' to the object
+                val setter = schema.idProp.setter
+                // Handle Int/Long types
+                when (schema.idProp.returnType.classifier) {
+                    Int::class -> setter.call(item, id.toInt())
+                    Long::class -> setter.call(item, id)
+                    else -> {} // Should be Int or Long
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+        // ALWAYS update map as backup/reference
+        idMap[item] = id
     }
 }
 
@@ -86,20 +127,17 @@ inline fun <reified T : Any> DriftStore(fileName: String, default: T): MutableSt
 }
 
 fun <T : Any> MutableState<T>.edit(block: T.() -> Unit) {
-    // LOOP BREAKER: Snapshot -> Run -> Compare
-    val props = SchemaCache.get(this.value::class)
-    val oldValues = props.map { it.getter.call(this.value) }
+    val schema = SchemaCache.get(this.value::class)
+    val oldValues = schema.allProps.map { it.getter.call(this.value) }
 
     this.value.block()
 
-    val newValues = props.map { it.getter.call(this.value) }
-    if (oldValues == newValues) return // Abort if unchanged
+    val newValues = schema.allProps.map { it.getter.call(this.value) }
+    if (oldValues == newValues) return
 
     val fileName = DriftRegistry.sourceMap[this] ?: return
-    // Async save
-    val db = DriftRegistry.getDb(fileName)
-    db.saveOne(this.value::class.simpleName ?: "Data", this.value)
-    this.value = this.value // Trigger Refresh
+    DriftRegistry.getDb(fileName).saveOne(this.value::class.simpleName ?: "Data", this.value)
+    this.value = this.value
 }
 
 fun <T : Any> MutableState<T>.remove() {
@@ -132,12 +170,16 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
     private val _items = mutableStateOf<List<T>>(emptyList(), policy = neverEqualPolicy())
     val items: List<T> get() = _items.value
 
+    private var syncCallback: ((SyncAction, T) -> Unit)? = null
+
+    fun onSync(callback: (SyncAction, T) -> Unit) {
+        this.syncCallback = callback
+    }
+
     suspend fun refreshInternal() {
         val db = DriftRegistry.getDb(fileName)
         val data = db.readList(kClass.simpleName ?: "Data", kClass)
-        withContext(Dispatchers.Main) {
-            _items.value = data
-        }
+        withContext(Dispatchers.Main) { _items.value = data }
     }
 
     fun refresh() {
@@ -148,39 +190,46 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
     fun add(item: T) {
         val db = DriftRegistry.getDb(fileName)
         db.insertListItem(kClass.simpleName ?: "Data", item)
+        syncCallback?.invoke(SyncAction.Insert, item)
         refresh()
     }
 
-    // NEW: Batch Add (Transactions)
     fun addAll(items: List<T>) {
         if (items.isEmpty()) return
         val db = DriftRegistry.getDb(fileName)
         db.batchInsert(kClass.simpleName ?: "Data", items)
+        items.forEach { syncCallback?.invoke(SyncAction.Insert, it) }
         refresh()
     }
 
-    // SAFE EDIT + LOOP BREAKER
     fun edit(item: T?, block: T.() -> Unit) {
         if (item == null) return
-        val id = DriftRegistry.idMap[item] ?: return
 
-        val props = SchemaCache.get(item::class)
-        val oldValues = props.map { it.getter.call(item) }
+        // HYBRID LOOKUP: Try Object ID -> Try Map
+        val id = DriftRegistry.getId(item)
+        if (id == -1L) return
+
+        val schema = SchemaCache.get(item::class)
+        val oldValues = schema.allProps.map { it.getter.call(item) }
 
         item.block()
 
-        val newValues = props.map { it.getter.call(item) }
-        if (oldValues == newValues) return // Abort
+        val newValues = schema.allProps.map { it.getter.call(item) }
+        if (oldValues == newValues) return
 
         val db = DriftRegistry.getDb(fileName)
         db.updateListItem(kClass.simpleName ?: "Data", item, id)
+        syncCallback?.invoke(SyncAction.Update, item)
         refresh()
     }
 
     fun remove(item: T) {
-        val id = DriftRegistry.idMap[item] ?: return
+        val id = DriftRegistry.getId(item)
+        if (id == -1L) return
+
         val db = DriftRegistry.getDb(fileName)
         db.deleteListItem(kClass.simpleName ?: "Data", id)
+        syncCallback?.invoke(SyncAction.Delete, item)
         refresh()
     }
 
@@ -196,7 +245,6 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
         refresh()
     }
 
-    // --- REACTIVE QUERIES ---
     @Composable
     fun query(where: String? = null, orderBy: String? = null): List<T> {
         val trigger = _items.value
@@ -211,8 +259,7 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
 
     @Composable
     fun sort(by: KProperty1<T, *>, order: Order = Order.Ascending): List<T> {
-        val direction = if (order == Order.Ascending) "ASC" else "DESC"
-        return query(orderBy = "${by.name} $direction")
+        return query(orderBy = "${by.name} ${if (order == Order.Ascending) "ASC" else "DESC"}")
     }
 
     @Composable
@@ -221,7 +268,6 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
         return query(orderBy = clause)
     }
 
-    // --- STREAMING FILTER (Supports exact syntax: it.age > 5) ---
     @Composable
     fun filter(predicate: (T) -> Boolean): List<T> {
         val trigger = _items.value
@@ -245,44 +291,36 @@ class DriftDatabaseHelper(context: Context, name: String) :
     override fun onCreate(db: SQLiteDatabase) {}
     override fun onUpgrade(db: SQLiteDatabase, o: Int, n: Int) {}
 
-    fun ensureTable(obj: Any, isList: Boolean) {
-        ensureTableFromClass(obj::class, isList)
-    }
+    fun ensureTable(obj: Any, isList: Boolean) { ensureTableFromClass(obj::class, isList) }
 
-    // UPDATED: With Schema Migration (ALTER TABLE)
     fun ensureTableFromClass(kClass: KClass<*>, isList: Boolean) {
         val tableName = kClass.simpleName ?: "Data"
         val db = writableDatabase
 
-        // 1. Create if missing
         val idType = if (isList) "INTEGER PRIMARY KEY AUTOINCREMENT" else "INTEGER PRIMARY KEY DEFAULT 0"
         val sb = StringBuilder("CREATE TABLE IF NOT EXISTS $tableName (id $idType")
-        val props = SchemaCache.get(kClass)
+        val schema = SchemaCache.get(kClass)
 
-        props.forEach { prop ->
-            // FIX: Cast KClassifier to KClass
-            val type = getSqlType(prop.returnType.classifier as? KClass<*>)
-            sb.append(", ${prop.name} $type")
+        // FILTER OUT 'id' from user properties to avoid duplicate column error
+        schema.allProps.forEach { prop ->
+            if (!prop.name.equals("id", ignoreCase = true)) {
+                val type = getSqlType(prop.returnType.classifier as? KClass<*>)
+                sb.append(", ${prop.name} $type")
+            }
         }
         sb.append(")")
         db.execSQL(sb.toString())
 
-        // 2. Auto-Migration (Check for missing columns)
         try {
             val cursor = db.rawQuery("PRAGMA table_info($tableName)", null)
             val existingColumns = mutableSetOf<String>()
             val nameIdx = cursor.getColumnIndex("name")
-            while (cursor.moveToNext()) {
-                existingColumns.add(cursor.getString(nameIdx))
-            }
+            while (cursor.moveToNext()) existingColumns.add(cursor.getString(nameIdx))
             cursor.close()
 
-            props.forEach { prop ->
-                if (!existingColumns.contains(prop.name)) {
-                    // FIX: Cast KClassifier to KClass
+            schema.allProps.forEach { prop ->
+                if (!prop.name.equals("id", ignoreCase = true) && !existingColumns.contains(prop.name)) {
                     val type = getSqlType(prop.returnType.classifier as? KClass<*>)
-                    // Safe default for new columns is NULL or 0/"" based on type logic if needed
-                    // Here we let SQLite handle default NULLs
                     db.execSQL("ALTER TABLE $tableName ADD COLUMN ${prop.name} $type")
                 }
             }
@@ -300,8 +338,6 @@ class DriftDatabaseHelper(context: Context, name: String) :
         }
     }
 
-    // --- WRITE OPS ---
-
     fun saveOne(table: String, obj: Any) {
         val cv = objectToContentValues(obj)
         cv.put("id", 0)
@@ -311,10 +347,11 @@ class DriftDatabaseHelper(context: Context, name: String) :
     fun insertListItem(table: String, obj: Any) {
         val cv = objectToContentValues(obj)
         cv.remove("id")
-        writableDatabase.insert(table, null, cv)
+        val newId = writableDatabase.insert(table, null, cv)
+        // CRITICAL: Write ID back to object if possible
+        if (newId != -1L) DriftRegistry.setId(obj, newId)
     }
 
-    // NEW: Batch Transaction
     fun batchInsert(table: String, items: List<Any>) {
         val db = writableDatabase
         db.beginTransaction()
@@ -322,16 +359,17 @@ class DriftDatabaseHelper(context: Context, name: String) :
             for (item in items) {
                 val cv = objectToContentValues(item)
                 cv.remove("id")
-                db.insert(table, null, cv)
+                val newId = db.insert(table, null, cv)
+                if (newId != -1L) DriftRegistry.setId(item, newId)
             }
             db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
-        }
+        } finally { db.endTransaction() }
     }
 
     fun updateListItem(table: String, obj: Any, id: Long) {
         val cv = objectToContentValues(obj)
+        // Ensure we don't accidentally update the primary key itself if it's in the object
+        cv.remove("id")
         writableDatabase.update(table, cv, "id = ?", arrayOf(id.toString()))
     }
 
@@ -347,8 +385,6 @@ class DriftDatabaseHelper(context: Context, name: String) :
         writableDatabase.execSQL("DELETE FROM $table")
     }
 
-    // --- READ ENGINE (Constructor-Safe) ---
-
     fun <T : Any> readOne(table: String, kClass: KClass<T>): T? {
         val list = readList(table, kClass, "id = 0", null)
         return list.firstOrNull()
@@ -357,8 +393,7 @@ class DriftDatabaseHelper(context: Context, name: String) :
     fun <T : Any> readList(table: String, kClass: KClass<T>, selection: String? = null, orderBy: String? = null): List<T> {
         val db = readableDatabase
         try {
-            val check = db.rawQuery("SELECT 1 FROM $table LIMIT 1", null)
-            check.close()
+            val check = db.rawQuery("SELECT 1 FROM $table LIMIT 1", null); check.close()
         } catch (e: Exception) { return emptyList() }
 
         val cursor = db.query(table, null, selection, null, null, null, orderBy)
@@ -373,6 +408,15 @@ class DriftDatabaseHelper(context: Context, name: String) :
         while (cursor.moveToNext()) {
             val params = arrayOfNulls<Any?>(parameters.size)
             for (i in colIndices.indices) {
+                // SPECIAL CASE: Inject 'id' from DB into Constructor 'id' if present
+                if (parameters[i].name.equals("id", ignoreCase = true) && idIdx != -1) {
+                    val dbId = cursor.getLong(idIdx)
+                    // Determine param type
+                    val type = classifiers[i] as? KClass<*>
+                    params[i] = if (type == Int::class) dbId.toInt() else dbId
+                    continue
+                }
+
                 val idx = colIndices[i]
                 if (idx == -1 || cursor.isNull(idx)) {
                     params[i] = null
@@ -389,7 +433,7 @@ class DriftDatabaseHelper(context: Context, name: String) :
             }
             try {
                 val instance = ctor.call(*params)
-                if (idIdx != -1) DriftRegistry.idMap[instance] = cursor.getLong(idIdx)
+                if (idIdx != -1) DriftRegistry.setId(instance, cursor.getLong(idIdx))
                 results.add(instance)
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -397,12 +441,12 @@ class DriftDatabaseHelper(context: Context, name: String) :
         return results
     }
 
-    // --- STREAMING FILTER ENGINE (Memory-Safe) ---
     fun <T : Any> readAndFilter(table: String, kClass: KClass<T>, predicate: (T) -> Boolean): List<T> {
+        // Reuse readList logic but with client-side filter?
+        // No, we need memory efficiency. Re-implementing simplified hydration.
         val db = readableDatabase
         try {
-            val check = db.rawQuery("SELECT 1 FROM $table LIMIT 1", null)
-            check.close()
+            val check = db.rawQuery("SELECT 1 FROM $table LIMIT 1", null); check.close()
         } catch (e: Exception) { return emptyList() }
 
         val cursor = db.query(table, null, null, null, null, null, null)
@@ -416,6 +460,14 @@ class DriftDatabaseHelper(context: Context, name: String) :
         while (cursor.moveToNext()) {
             val params = arrayOfNulls<Any?>(parameters.size)
             for (i in colIndices.indices) {
+                // SPECIAL CASE: Inject ID
+                if (parameters[i].name.equals("id", ignoreCase = true) && idIdx != -1) {
+                    val dbId = cursor.getLong(idIdx)
+                    val type = classifiers[i] as? KClass<*>
+                    params[i] = if (type == Int::class) dbId.toInt() else dbId
+                    continue
+                }
+
                 val idx = colIndices[i]
                 if (idx == -1 || cursor.isNull(idx)) {
                     params[i] = null
@@ -432,9 +484,8 @@ class DriftDatabaseHelper(context: Context, name: String) :
             }
             try {
                 val instance = ctor.call(*params)
-                // Filter immediately, discard if false
                 if (predicate(instance)) {
-                    if (idIdx != -1) DriftRegistry.idMap[instance] = cursor.getLong(idIdx)
+                    if (idIdx != -1) DriftRegistry.setId(instance, cursor.getLong(idIdx))
                     results.add(instance)
                 }
             } catch (e: Exception) { e.printStackTrace() }
@@ -445,7 +496,10 @@ class DriftDatabaseHelper(context: Context, name: String) :
 
     private fun objectToContentValues(obj: Any): ContentValues {
         val cv = ContentValues()
-        SchemaCache.get(obj::class).forEach { prop ->
+        SchemaCache.get(obj::class).allProps.forEach { prop ->
+            // Skip 'id' property in content values, it's handled by DB
+            if (prop.name.equals("id", ignoreCase = true)) return@forEach
+
             val value = prop.getter.call(obj)
             when(value) {
                 is String -> cv.put(prop.name, value)
@@ -461,4 +515,4 @@ class DriftDatabaseHelper(context: Context, name: String) :
 }
 
 val Any.driftId: Long
-    get() = DriftRegistry.idMap[this] ?: -1L
+    get() = DriftRegistry.getId(this)

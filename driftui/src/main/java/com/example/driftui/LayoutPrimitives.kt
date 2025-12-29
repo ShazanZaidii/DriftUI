@@ -90,11 +90,17 @@ fun DriftView(
     val context = androidx.compose.ui.platform.LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val activity = context as? android.app.Activity
+    DriftGlobals.currentActivity = activity
+
     // 1. Initialize Audio Engine
     LaunchedEffect(Unit) {
         DriftAudio.initialize(context)
         DriftHaptics.initialize(context)
         DriftStorage.initialize(context)
+
+        DriftGlobals.applicationContext = context.applicationContext
+        DriftNotificationEngine.prepareIfNeeded()
     }
 
     // 2. Handle System Silence (FIXED: Pass context explicitly)

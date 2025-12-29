@@ -143,6 +143,12 @@ fun Modifier.scaleEffect(scale: Float): Modifier =
     })
 
 
+data class TextAlignmentModifier(val x: Float, val y: Float) : Modifier.Element
+
+fun Modifier.align(x: Float, y: Float): Modifier = this.then(TextAlignmentModifier(x, y))
+fun Modifier.align(x: Int, y: Int): Modifier = this.then(TextAlignmentModifier(x.toFloat(), y.toFloat()))
+
+
 // ---------------------------------------------------------------------------------------------
 // SHADOW AND BORDER MODIFIERS
 // ---------------------------------------------------------------------------------------------

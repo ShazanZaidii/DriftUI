@@ -50,5 +50,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.22")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    implementation ("androidx.activity:activity-compose:1.9.0")
+    implementation ("androidx.core:core-ktx:1.13.0")
+
+
+
 
 }

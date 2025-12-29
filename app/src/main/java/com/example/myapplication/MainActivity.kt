@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.app.Notification
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,80 +30,79 @@ class MainActivity : ComponentActivity() {
 //        WindowCompat.setDecorFitsSystemWindows(window, true)
         super.onCreate(savedInstanceState)
         setContent {
-
-            test4()
-
+                metro()
         }
     }
-}
 
 
-//Data Model
-data class Model(
-    var name: String,
-    var age: Int
-)
-@Composable
-fun test4(){
-    //Creating a Store
-    val users = DriftStore("database", Model::class)
+    //Data Model
+    data class Model(
+        var id: Long? = null,
+        var name: String,
+        var age: Int
+    )
 
-    //Editing by first finding the id then passing it to edit.
-    val umair = users.items.find { it.name == "Umair" }
-    users.edit(umair){
-        age = 6
-    }
+    @Composable
+    fun test4() {
+        //Creating a Store
+        val users = DriftStore("database", Model::class)
 
-    val selected2 = users.filter { it.name.startsWith("Ak") && it.name.endsWith("a") }
-
-    // Sorting users:
-    val sorted = users.sort(Sort(Model::name, Order.Descending)) //Using Descending Order
-    //CODE: val sorted = users.sort(Sort(Model::name)) //Using Ascending Order - No need to explicitly mention. It will be Ascending by default.
-
-    //For Compound Sorting-
-    // Code: val sorted = users.sort(Sort(Model::name, Order.Descending), Sort(Model::age, Order.Descending)) //Using Descending Order
-
-    DriftView() {
-        //Create
-        if(users.items.isEmpty()) {
-            Text("Add", Modifier.onTapGesture(action = {
-                users.add(Model("Sameer", 12))
-                users.add(Model("Akbar", 7))
-                users.add(Model("Akmala", 43))
-                users.add(Model("Akshara", 21))
-                users.add(Model("Umair",33))
-            }))
+        //Editing by first finding the id then passing it to edit.
+        val umair = users.items.find { it.name == "Umair" }
+        users.edit(umair) {
+            age = 6
         }
 
-        VStack {
+        val selected2 = users.filter { it.name.startsWith("Ak") && it.name.endsWith("a") }
 
-            if(!users.items.isEmpty()){
-                Text("Original Data:", Modifier.font(system(18, light)))
-                List(users.items){s->
-                    Text("${s.age}.  ${s.name}")
-                }
+        // Sorting users:
+        val sorted = users.sort(Sort(Model::name, Order.Descending)) //Using Descending Order
+        //CODE: val sorted = users.sort(Sort(Model::name)) //Using Ascending Order - No need to explicitly mention. It will be Ascending by default.
 
-                //Original List:
+        //For Compound Sorting-
+        // Code: val sorted = users.sort(Sort(Model::name, Order.Descending), Sort(Model::age, Order.Descending)) //Using Descending Order
 
-                Spacer(13)
-                Text("Sorted Data:", Modifier.font(system(18, light)))
-                List(sorted) { s ->
-                    Text("${s.age}.  ${s.name}")
-                }
-                Spacer(13)
-                List(selected2){s->
-                    Text("${s.age}.  ${s.name}")
-                }
+        DriftView() {
+            //Create
+            if (users.items.isEmpty()) {
 
+                Text("Add", Modifier.onTapGesture(action = {
+                    users.add(Model(1, "Sameer", 12))
+                    users.add(Model(2, "Akbar", 7))
+                    users.add(Model(3, "Akmala", 43))
+                    users.add(Model(4, "Akshar", 21))
+                    users.add(Model(5, "Umair", 33))
+                }))
             }
 
-            Text("Nuke", Modifier.padding(top = 70).onTapGesture(action = {users.removeAll()}))
+            VStack {
+
+                if (!users.items.isEmpty()) {
+                    Text("Original Data:", Modifier.font(system(18, light)))
+                    List(users.items) { s ->
+                        Text("${s.age}.  ${s.name}")
+                    }
+
+                    //Original List:
+
+                    Spacer(13)
+                    Text("Sorted Data:", Modifier.font(system(18, light)))
+                    List(sorted) { s ->
+                        Text("${s.age}.  ${s.name}")
+                    }
+                    Spacer(13)
+                    List(selected2) { s ->
+                        Text("${s.age}.  ${s.name}")
+                    }
+
+                }
+
+                Text(
+                    "Nuke",
+                    Modifier.padding(top = 70).onTapGesture(action = { users.removeAll() })
+                )
+            }
         }
-
-
-
-
-
     }
 
 }
