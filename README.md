@@ -15,16 +15,29 @@ Image("//Image name goes here")
 
 ```
 // Defining variables
-    val username = remember { State("") }
-    val password = remember { State("") }
+    var source = State("")
+    var destination = State("")
 
 // Using in TextField and SecureField
-    TextField("Username",value = username, Modifier.frame(width= 170, height = 40))
-    SecureField("Password", value = password, Modifier.frame(width= 170, height = 40))
+    TextField(
+                "Enter Source",
+                value = source,
+                Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7)
+                    .background(Color.shazan).foregroundStyle(Color.white)
+                    .frame(width= 370, height = 45).align(x = -1, y = 0)
+            )
+
+SecureField(
+                "Enter Destination",
+                value = destination,
+                Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7)
+                    .background(Color.shazan).foregroundStyle(Color.white)
+                    .frame(width= 370, height = 45).align(x = -1, y = 0)
+            )
 
 // Accessing Variables values:
-    Text("Live Username: ${username.value}")
-    Text("Live Password: ${password.value}")
+    Text("Entered text is: ${source.value}")
+    Text("Entered password is: ${destination.value}")
 
 
 ```   
