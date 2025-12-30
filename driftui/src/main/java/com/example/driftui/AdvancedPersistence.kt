@@ -17,6 +17,9 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.isAccessible
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 // =============================================================================================
 // OPTIMIZATION: SCHEMA CACHE & IDENTITY REFLECTION
 // =============================================================================================
@@ -59,6 +62,8 @@ object DriftRegistry {
     // FALLBACK: Used only if the object has no 'id' field
     val sourceMap = WeakHashMap<Any, String>()
     val idMap = WeakHashMap<Any, Long>()
+
+    val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val dbCache = mutableMapOf<String, DriftDatabaseHelper>()
     var context: Context? = null
@@ -145,6 +150,22 @@ fun <T : Any> MutableState<T>.remove() {
     DriftRegistry.getDb(fileName).nukeTable(this.value::class.simpleName ?: "Data")
 }
 
+fun <T : Any> MutableState<T>.set(newValue: T) {
+    // 1. INSTANT UI UPDATE (Main Thread)
+    // The user sees the change immediately. Zero lag.
+    this.value = newValue
+
+    // 2. BACKGROUND SAVE (IO Thread)
+    // We launch a "fire and forget" job. The UI doesn't wait for this to finish.
+    DriftRegistry.ioScope.launch {
+        // Find the file name
+        val fileName = DriftRegistry.sourceMap[this@set] ?: return@launch
+
+        // Perform the heavy database write here, off the main thread
+        val db = DriftRegistry.getDb(fileName)
+        db.saveOne(newValue::class.simpleName ?: "Data", newValue)
+    }
+}
 // =============================================================================================
 // API 2: COLLECTION MODE
 // =============================================================================================
@@ -334,6 +355,8 @@ class DriftDatabaseHelper(context: Context, name: String) :
             Boolean::class -> "INTEGER"
             Float::class -> "REAL"
             Double::class -> "REAL"
+            // LISTS are stored as JSON strings
+            List::class -> "TEXT"
             else -> "TEXT"
         }
     }
@@ -427,6 +450,21 @@ class DriftDatabaseHelper(context: Context, name: String) :
                         Boolean::class -> cursor.getInt(idx) == 1
                         Float::class -> cursor.getFloat(idx)
                         Double::class -> cursor.getDouble(idx)
+                        // --- LIST HANDLING PATCH ---
+                        List::class -> {
+                            val rawJson = cursor.getString(idx)
+                            try {
+                                val jsonArray = org.json.JSONArray(rawJson)
+                                val list = mutableListOf<String>()
+                                for (j in 0 until jsonArray.length()) {
+                                    list.add(jsonArray.getString(j))
+                                }
+                                list
+                            } catch (e: Exception) {
+                                emptyList<String>()
+                            }
+                        }
+                        // ---------------------------
                         else -> cursor.getString(idx)
                     }
                 }
@@ -478,6 +516,21 @@ class DriftDatabaseHelper(context: Context, name: String) :
                         Boolean::class -> cursor.getInt(idx) == 1
                         Float::class -> cursor.getFloat(idx)
                         Double::class -> cursor.getDouble(idx)
+                        // --- LIST HANDLING PATCH ---
+                        List::class -> {
+                            val rawJson = cursor.getString(idx)
+                            try {
+                                val jsonArray = org.json.JSONArray(rawJson)
+                                val list = mutableListOf<String>()
+                                for (j in 0 until jsonArray.length()) {
+                                    list.add(jsonArray.getString(j))
+                                }
+                                list
+                            } catch (e: Exception) {
+                                emptyList<String>()
+                            }
+                        }
+                        // ---------------------------
                         else -> cursor.getString(idx)
                     }
                 }
@@ -507,7 +560,12 @@ class DriftDatabaseHelper(context: Context, name: String) :
                 is Boolean -> cv.put(prop.name, if(value) 1 else 0)
                 is Float -> cv.put(prop.name, value)
                 is Double -> cv.put(prop.name, value)
+                is List<*> -> {
+                    val json = org.json.JSONArray(value).toString()
+                    cv.put(prop.name, json)
+                }
                 null -> cv.putNull(prop.name)
+                else -> cv.put(prop.name, value.toString())
             }
         }
         return cv

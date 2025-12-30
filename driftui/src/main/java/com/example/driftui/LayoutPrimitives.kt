@@ -88,6 +88,7 @@ fun DriftView(
 ) {
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    DriftRegistry.context = context.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val activity = context as? android.app.Activity
@@ -131,8 +132,14 @@ fun DriftView(
         }
     }
 
+//    Box(modifier = modifier.fillMaxSize().background(driftColors.background),
+//        contentAlignment = Alignment.Center, content = content)
+
     Box(modifier = modifier.fillMaxSize().background(driftColors.background),
-        contentAlignment = Alignment.Center, content = content)
+        contentAlignment = Alignment.Center){
+        content()
+        DriftToastHost()
+    }
 }
 
 // ---------------------------------------------------------------------------------------------

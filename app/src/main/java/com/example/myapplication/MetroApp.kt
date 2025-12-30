@@ -9,17 +9,67 @@ import com.example.driftui.Notification
 import com.example.driftui.onTapGesture
 import com.example.driftui.*
 
+
 @Composable
 fun metro(){
-    var source = State("")
-    var destination = State("")
     DriftView() {
-        VStack() {
-//            Divider(color = Color.shazan)
+        var source = Storage(key = "source", defaultValue = "")
+        var destination = Storage(key = "destination", defaultValue = "")
+        //Graph:
+        val graph = readJson("metro_graph_final_fixed.json")
+        val allStations = graph["stations"]
+        val mundkaExact = allStations.search("name", "Mundka")
+        val sortedList = allStations.sort("name")
+        val searchResults = allStations.fuzzySearch("name", "Mndka")
 
-            TextField("Enter Source",value = source, Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7).background(Color.shazan).foregroundStyle(Color.white).frame(width= 370, height = 45).align(x = -1, y = 0))
-            SecureField("Enter Destination",value = destination, Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7).background(Color.shazan).foregroundStyle(Color.white).frame(width= 370, height = 45).align(x = -1, y = 0))
-            Text(source.value)
+
+
+    NavigationStack(Modifier.toolbarStyle(backgroundColor = Color.shazan, foregroundColor = Color.white).frame(width = 450, height = 70)) {
+
+        VStack() {
+
+        ZStack() {
+
+            ZStack(Modifier.padding(trailing = 60)) {
+                TextField(
+                    "Source",
+                    value = source,
+                    Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7)
+                        .background(Color.shazan).foregroundStyle(Color.white)
+                        .frame(width= 300, height = 45).offset(x = 10))
+                Image("magnifyingglass", Modifier.scaleEffect(3).padding(leading = 80))
+            }
+            Button(action = {
+            swap(destination, source)
+            }, Modifier.offset(x = 155, y=30).scaleEffect(0.4)) {
+                Image("img")
+
+            }
+            ZStack(Modifier.padding(top = 125).padding(trailing = 60)) {
+                TextField(
+                    "Destination",
+                    value = destination,
+                    Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7)
+                        .background(Color.shazan).foregroundStyle(Color.white)
+                        .frame(width= 300, height = 45).offset(x = 10))
+                Image("magnifyingglass", Modifier.scaleEffect(3).padding(leading = 80))
+
+            }
         }
+//            List(items = sortedList) { station ->
+//                // Access properties using ["key"].string
+//                Text(station["name"].string)
+//            }
+
+            Text("Entered text is: ${source.value}")
+            Text("Entered password is: ${destination.value}")
+        }
+            toolbar(Modifier.frame(width = 450, height = 95)) {
+
+                ToolbarItem(placement = ToolbarPlacement.Leading) {
+                    Text("Route", Modifier.foregroundStyle(Color.white).font(system(size = 22, weight = medium)).padding(top = 40))
+                }
+            }
     }
+}
 }

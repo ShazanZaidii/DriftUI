@@ -23,7 +23,6 @@ import java.util.UUID
 
 
 
-
 //UUID:
 fun UUID(): UUID = UUID.randomUUID()
 
@@ -98,7 +97,18 @@ inline fun <reified T : ObservableObject> EnvironmentObject(): T {
 inline fun <reified T : ObservableObject> ObservedObject(noinline factory: () -> T): T {
     return remember { factory() }
 }
+//------------
+//SWAP
+//----------
 
+// 1. Change State<T> to MutableState<T> (so it's writeable)
+fun <T> swap(a: MutableState<T>, b: MutableState<T>) {
+    val temp = a.value
+
+    // 2. Use .value = ... (there is no .set() method)
+    a.value = b.value
+    b.value = temp
+}
 // Save to gallery:
 
 fun savePathToGallery(context: Context, path: Path, width: Int, height: Int): Boolean {

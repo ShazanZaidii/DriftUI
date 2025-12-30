@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Modifier
@@ -28,6 +29,46 @@ fun test2() {
         VStack(spacing = 20) {
             TextField(placeholder = "Username",value = username)
             Text("Name is ${id}", Modifier.foregroundStyle(Color.blue))
+        }
+    }
+}
+
+@Composable
+fun test3(){
+    DriftView() {
+        var current = remember { State(0) }
+        VStack() {
+
+            Button(action = {
+                current.set(1)
+            }) {
+                Text("Button")
+
+            }
+            Button(action = {
+                current.set(2)
+            }) {
+                Text("Button")
+
+            }
+            if (current.value == 1) {
+                Toast("Hey, this is Shazan", Modifier.onEnd { current.set(0) })
+
+            }
+            if (current.value == 2) {
+                Toast(
+                    Modifier.clipShape(RoundedRectangle(radius = 12))
+                        .toastColor(Color.yellow.copy(alpha = 0.2f))
+                        .onEnd{ current.set(0)}
+                        .duration(2.0)
+                ) {
+                    HStack() {
+                        Image("pip_swap", Modifier.scaleEffect(2))
+                        Text("This is an advanced toast")
+                    }
+                }
+
+            }
         }
     }
 }
