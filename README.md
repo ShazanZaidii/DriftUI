@@ -11,7 +11,7 @@
 Image("//Image name goes here")
 
 ```
-<h1>8. TextField & SecureField(for passwords)</h1>
+<h1>8. TextField & SecureField(for passwords)</h1> [Use align to adjust to hard left, right or center using -1, 0 and 1. To adjust precise position of text wrt frame use .offset]
 
 ```
 // Defining variables
