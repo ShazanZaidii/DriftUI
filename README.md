@@ -704,7 +704,45 @@ fun test4(){
 
 
 ```
+<h1>31. Toasts: [Note to modify background color use toastColor Modifier and not .background]</h1>
 
+```
+//1.Simple Toast:
+Toast("Hey, this is Shazan")
+
+//2. With Some action once the toast ends:
+Toast("Hey, this is Shazan", Modifier.onEnd { current.set(0) })
+
+//3. Advanced Toast as a view:
+Toast(
+                    Modifier.clipShape(RoundedRectangle(radius = 12))
+                        .toastColor(Color.yellow.copy(alpha = 0.2f))
+                        .onEnd{ current.set(0)}
+                        .duration(2.0)
+                ) {
+                    HStack() {
+                        Image("pip_swap", Modifier.scaleEffect(2))
+                        Text("This is an advanced toast")
+                    }
+                }
+
+```
+
+<h1>32. JSON Reader:</h1>
+
+```
+val graph = readJson("metro_graph_final_fixed.json") // Telling the name of the file stored in assets folder in this case- metro_graph_final_fixed.json
+
+        val allStations = graph["stations"] //traversing 
+        val mundkaExact = allStations.search("name", "Mundka") //Searching
+        val sortedList = allStations.sort("name") //Sorting
+        val searchResults = allStations.fuzzySearch("name", "Mndka") //Fuzzy Searching to be able to get the resuts even for incorrect spellings if words match (kindof)
+
+//Showing the stored values as list:
+List(items = sortedList) { station ->
+                Text(station["name"].string)
+            }
+```
 
 **********</br>
 Steps to Use DriftUI:
