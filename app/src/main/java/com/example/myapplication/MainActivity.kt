@@ -30,7 +30,8 @@ class MainActivity : ComponentActivity() {
 //        WindowCompat.setDecorFitsSystemWindows(window, true)
         super.onCreate(savedInstanceState)
         setContent {
-                test3()
+//                metro()
+            MyScreen()
         }
     }
 

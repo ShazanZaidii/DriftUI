@@ -1,5 +1,6 @@
 package com.example.driftui
 //This file is NavigationSheet.kt
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -476,6 +477,19 @@ fun NavigationStack(
     val navStack = remember { mutableStateListOf<@Composable () -> Unit>() }
     val navController = remember { DriftNavController(navStack) }
     val currentScreen = navStack.lastOrNull()
+    val toolbarItems = remember { mutableStateListOf<ToolbarEntry>() }
+    val toolbarLayoutState = remember { mutableStateOf<Modifier?>(null) }
+
+
+    LaunchedEffect(currentScreen) {
+        toolbarItems.clear()
+    }
+
+
+    // NATIVE BACK BUTTON SUPPORT ADDED HERE
+    BackHandler(enabled = navController.canPop()) {
+        navController.pop()
+    }
 
     var navTitle: String? = null
     modifier.foldIn(Unit) { _, el ->
