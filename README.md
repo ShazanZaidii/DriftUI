@@ -480,7 +480,8 @@ haptic(Haptic.Error)
             
 ```
 
-<h1>29. Storage Persistence Type1 (For light data like @AppStorage):</h1>
+<h1>29. Storage Persistence Type1 (For light data like @AppStorage) [To use inside classes add -   "DriftStorage.initialize(applicationContext)" before "setContent" line in MainActivity.]
+]:</h1>
 
 ```
 var username = Storage(key = "username", defaultValue = "")
@@ -539,6 +540,25 @@ Button(onClick = {
 }) { Text("Add User") }
 ```
 
+### Add Data [Safely as seed it will be ready on app's first launch]
+
+```kotlin
+//data class:
+data class User(
+    val username: String,
+    val password: String
+)
+
+//Using Seed to plant database:
+//Automatically creates table, checks for duplicates by username, and inserts if missing.
+        users.seed(
+            User("admin", "admin"),
+            User("user1", "user1")
+        ) {
+            //To check duplicacy based on username
+            it.username
+        }
+```
 ### Edit Data (Reactive)
 
 Find an item and modify it in place. The UI will refresh instantly.
@@ -743,6 +763,19 @@ List(items = sortedList) { station ->
                 Text(station["name"].string)
             }
 ```
+
+<h1>33. Add Ons:</h1>
+Device Specific Variables- statusBarHeight & width N deviceHeight & width,
+Triangle - Shape, 
+Darker - color Modifier
+Rgb, rgba, hex - color formats.
+pushReplacement for stacks
+.seed 
+
+// Inside MainActivity.onCreate before setContent{}
+DriftStorage.initialize(applicationContext)  // Starts SharedPreferences - "Storage" you need this to use Storage variables inside viewModels or classes
+DriftRegistry.initialize(applicationContext) // Starts Advance Persistence Engine (Add this!) 
+
 
 **********</br>
 Steps to Use DriftUI:
