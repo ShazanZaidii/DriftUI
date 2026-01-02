@@ -27,7 +27,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import androidx.compose.material3.ExperimentalMaterial3Api
-
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
 // --- CUSTOM IMPORTS ---
 import com.example.driftui.driftColors
 import com.example.driftui.Text
@@ -51,6 +52,12 @@ enum class ToolbarPlacement { Leading, Center, Trailing }
 
 data class ToolbarEntry(
     val placement: ToolbarPlacement,
+    val content: @Composable () -> Unit
+)
+
+// ✅ DATA MODEL FOR NAVIGATION ENTRIES
+data class StackEntry(
+    val isRoot: Boolean = false,
     val content: @Composable () -> Unit
 )
 
@@ -209,9 +216,18 @@ private fun CustomToolbarSurface(
 // Navigation controller
 // ---------------------------
 
-class DriftNavController(private val stack: MutableList<@Composable () -> Unit>) {
+// ✅ UPDATED CONTROLLER TO SUPPORT STACK ENTRY & REPLACEMENT
+class DriftNavController(private val stack: MutableList<StackEntry>) {
+
+    // Normal push
     fun push(screen: @Composable () -> Unit) {
-        stack.add(screen)
+        stack.add(StackEntry(isRoot = false, content = screen))
+    }
+
+    // ✅ NEW: Push Replacement (Clears history, sets new Root)
+    fun pushReplacement(screen: @Composable () -> Unit) {
+        stack.clear()
+        stack.add(StackEntry(isRoot = true, content = screen))
     }
 
     fun pop() {
@@ -226,7 +242,11 @@ class DriftNavController(private val stack: MutableList<@Composable () -> Unit>)
 
     fun dismiss() = pop()
 
-    fun current(): (@Composable () -> Unit)? = stack.lastOrNull()
+    // Helper to peek at full entry
+    fun currentEntry(): StackEntry? = stack.lastOrNull()
+
+    // Compatibility helper
+    fun current(): (@Composable () -> Unit)? = stack.lastOrNull()?.content
 
     fun canPop() = stack.isNotEmpty()
 }
@@ -474,21 +494,29 @@ fun NavigationStack(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val navStack = remember { mutableStateListOf<@Composable () -> Unit>() }
+    // ✅ CHANGED: Now using StackEntry instead of raw composable lambda
+    val navStack = remember { mutableStateListOf<StackEntry>() }
     val navController = remember { DriftNavController(navStack) }
-    val currentScreen = navStack.lastOrNull()
+
+    val currentEntry = navController.currentEntry()
     val toolbarItems = remember { mutableStateListOf<ToolbarEntry>() }
     val toolbarLayoutState = remember { mutableStateOf<Modifier?>(null) }
 
 
-    LaunchedEffect(currentScreen) {
+    LaunchedEffect(currentEntry) {
         toolbarItems.clear()
     }
 
 
-    // NATIVE BACK BUTTON SUPPORT ADDED HERE
+    // ✅ AUTO-HANDLE BACK BUTTON
+    // If it's a root replacement -> Exit App. Else -> Go Back.
+    val context = LocalContext.current
     BackHandler(enabled = navController.canPop()) {
-        navController.pop()
+        if (currentEntry?.isRoot == true) {
+            (context as? Activity)?.finish()
+        } else {
+            navController.pop()
+        }
     }
 
     var navTitle: String? = null
@@ -521,7 +549,7 @@ fun NavigationStack(
     var navToolbarPadding: Dp? = null
 
 
-    // Lifecycle variables to hold the actions (Insert these variables)
+    // Lifecycle variables to hold the actions
     var onAppearAction: (() -> Unit)? = null
     var onDisappearAction: (() -> Unit)? = null
 
@@ -532,7 +560,7 @@ fun NavigationStack(
         else if (el is SheetModifier) sheetModifier = el
         else if (el is ToolbarStyleModifier) { /* ... */ }
 
-        // NEW: Extract Lifecycle Actions (Insert these lines)
+        // NEW: Extract Lifecycle Actions
         else if (el is LifecycleAppearModifier) onAppearAction = el.action
         else if (el is LifecycleDisappearModifier) onDisappearAction = el.action
         Unit
@@ -609,7 +637,7 @@ fun NavigationStack(
 
         // 3. --- LIFECYCLE HOOKS ---
         // DisposableEffect runs cleanup (onDispose) before the content leaves the Composition
-        DisposableEffect(currentScreen) {
+        DisposableEffect(currentEntry) {
             // 3a. Run onAppear when the screen *starts* composing
             onAppearAction?.invoke()
 
@@ -650,8 +678,9 @@ fun NavigationStack(
                     }
 
                     Box(Modifier.fillMaxSize()) {
-                        if (currentScreen == null) content()
-                        else currentScreen.invoke()
+                        // ✅ RENDER LOGIC UPDATE: Use entry or content()
+                        if (currentEntry == null) content()
+                        else currentEntry.content.invoke()
                     }
                 }
             }
@@ -667,4 +696,9 @@ fun NavigationStack(
             }
         }
     }
+}
+
+@Composable
+fun useNav(): DriftNavController {
+    return LocalNavController.current
 }

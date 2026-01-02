@@ -11,7 +11,7 @@
 //@Composable
 //fun LoginScreenView() {
 //
-//    val viewModel: LoginViewModel = StateObject()
+//    val viewModel: MetroViewModel = StateObject()
 //    val dismiss = Dismiss()
 //
 //    NavigationStack(Modifier.preferredColorScheme(lightMode).navigationBarBackButtonHidden(true).toolbarStyle(backgroundColor = Color.shazan)) {

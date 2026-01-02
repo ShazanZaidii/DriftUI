@@ -26,35 +26,58 @@ import androidx.compose.ui.geometry.Offset
 import com.example.driftui.SheetDetent
 import com.example.driftui.State
 import com.example.driftui.RoundedRectangle
+import androidx.compose.ui.Alignment
 
+
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.offset
+
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.offset
+
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 // ---------------------------------------------------------------------------------------------
-// PADDING
+// PADDING (Supports Negative Values!)
 // ---------------------------------------------------------------------------------------------
 
-fun Modifier.padding(all: Int): Modifier =
-    this.then(Modifier.foundationPadding(all.dp))
+fun Modifier.padding(all: Int): Modifier = this.padding(all, all, all, all)
 
 fun Modifier.padding(horizontal: Int = 0, vertical: Int = 0): Modifier =
-    this.then(Modifier.foundationPadding(horizontal = horizontal.dp, vertical = vertical.dp))
+    this.padding(vertical, vertical, horizontal, horizontal)
 
 fun Modifier.padding(
     top: Int = 0,
     bottom: Int = 0,
     leading: Int = 0,
     trailing: Int = 0
-): Modifier =
-    this.then(
-        Modifier.foundationPadding(
-            PaddingValues(
-                start = leading.dp,
-                end = trailing.dp,
-                top = top.dp,
-                bottom = bottom.dp
-            )
-        )
-    )
+): Modifier = this.layout { measurable, constraints ->
+    // 1. Convert everything to Pixels
+    val topPx = top.dp.roundToPx()
+    val bottomPx = bottom.dp.roundToPx()
+    val startPx = leading.dp.roundToPx()
+    val endPx = trailing.dp.roundToPx()
 
+    val horizontalPadding = startPx + endPx
+    val verticalPadding = topPx + bottomPx
+
+    // 2. Adjust Constraints
+    // Negative padding INCREASES available space for the child (offset adds -(-10) = +10)
+    val childConstraints = constraints.offset(-horizontalPadding, -verticalPadding)
+    val placeable = measurable.measure(childConstraints)
+
+    // 3. Calculate Final Size
+    // Negative padding SHRINKs the wrapper size
+    val width = (placeable.width + horizontalPadding).coerceAtLeast(0)
+    val height = (placeable.height + verticalPadding).coerceAtLeast(0)
+
+    layout(width, height) {
+        // 4. Place Content
+        // Positive 'top' moves content down. Negative 'top' moves content up.
+        // using placeRelative handles LTR/RTL automatically
+        placeable.placeRelative(startPx, topPx)
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 // BACKGROUND
@@ -68,32 +91,75 @@ fun Modifier.background(color: Color): Modifier =
 // FRAME (Uses widthIn and heightIn from foundation.layout)
 // ---------------------------------------------------------------------------------------------
 
+//fun Modifier.frame(
+//    width: Int? = null,
+//    height: Int? = null,
+//    minWidth: Int = 0,
+//    maxWidth: Int? = null,
+//    minHeight: Int = 0,
+//    maxHeight: Int? = null
+//): Modifier {
+//
+//    var m = this
+//
+//    if (width != null) m = m.then(Modifier.width(width.dp))
+//    else m = m.then(Modifier.widthIn(
+//        min = if (minWidth > 0) minWidth.dp else Dp.Unspecified,
+//        max = if (maxWidth != null) maxWidth!!.dp else Dp.Unspecified
+//    ))
+//
+//    if (height != null) m = m.then(Modifier.height(height.dp))
+//    else m = m.then(Modifier.heightIn(
+//        min = if (minHeight > 0) minHeight.dp else Dp.Unspecified,
+//        max = if (maxHeight != null) maxHeight!!.dp else Dp.Unspecified
+//    ))
+//
+//    return m
+//}
+
+// ---------------------------------------------------------------------------------------------
+// FRAME (Updated to support Number: Int, Float, Double)
+// ---------------------------------------------------------------------------------------------
+
 fun Modifier.frame(
-    width: Int? = null,
-    height: Int? = null,
-    minWidth: Int = 0,
-    maxWidth: Int? = null,
-    minHeight: Int = 0,
-    maxHeight: Int? = null
+    width: Number? = null,
+    height: Number? = null,
+    minWidth: Number = 0,
+    maxWidth: Number? = null,
+    minHeight: Number = 0,
+    maxHeight: Number? = null
 ): Modifier {
 
     var m = this
 
-    if (width != null) m = m.then(Modifier.width(width.dp))
-    else m = m.then(Modifier.widthIn(
-        min = if (minWidth > 0) minWidth.dp else Dp.Unspecified,
-        max = if (maxWidth != null) maxWidth!!.dp else Dp.Unspecified
-    ))
+    // Handle Width
+    if (width != null) {
+        m = m.then(Modifier.width(width.toFloat().dp))
+    } else {
+        val minW = minWidth.toFloat()
+        val maxW = maxWidth?.toFloat()
 
-    if (height != null) m = m.then(Modifier.height(height.dp))
-    else m = m.then(Modifier.heightIn(
-        min = if (minHeight > 0) minHeight.dp else Dp.Unspecified,
-        max = if (maxHeight != null) maxHeight!!.dp else Dp.Unspecified
-    ))
+        m = m.then(Modifier.widthIn(
+            min = if (minW > 0) minW.dp else Dp.Unspecified,
+            max = if (maxW != null) maxW.dp else Dp.Unspecified
+        ))
+    }
+
+    // Handle Height
+    if (height != null) {
+        m = m.then(Modifier.height(height.toFloat().dp))
+    } else {
+        val minH = minHeight.toFloat()
+        val maxH = maxHeight?.toFloat()
+
+        m = m.then(Modifier.heightIn(
+            min = if (minH > 0) minH.dp else Dp.Unspecified,
+            max = if (maxH != null) maxH.dp else Dp.Unspecified
+        ))
+    }
 
     return m
 }
-
 
 // ---------------------------------------------------------------------------------------------
 // VISUAL MODIFIERS
@@ -143,6 +209,9 @@ fun Modifier.scaleEffect(scale: Float): Modifier =
     })
 
 
+
+
+
 data class TextAlignmentModifier(val x: Float, val y: Float) : Modifier.Element
 
 fun Modifier.align(x: Float, y: Float): Modifier = this.then(TextAlignmentModifier(x, y))
@@ -154,8 +223,13 @@ fun Modifier.align(x: Int, y: Int): Modifier = this.then(TextAlignmentModifier(x
 // ---------------------------------------------------------------------------------------------
 
 
+// 1. Simple Border (Square)
 fun Modifier.border(color: Color, width: Int): Modifier =
     this.then(Modifier.border(width.dp, color))
+
+// 2. Rounded Border (NEW)
+fun Modifier.border(color: Color, width: Int, cornerRadius: Int): Modifier =
+    this.then(Modifier.border(width.dp, color, RoundedCornerShape(cornerRadius.dp)))
 
 
 fun Modifier.shadow(
@@ -482,3 +556,48 @@ data class DrawEndModifier(val onEnd: () -> Unit) : Modifier.Element
 
 fun Modifier.onDraw(action: (Offset) -> Unit): Modifier = this.then(DrawModifier(action))
 fun Modifier.onDrawEnd(action: () -> Unit): Modifier = this.then(DrawEndModifier(action))
+
+
+
+// ---------------------------------------------------------------------------------------------
+// ALIGNMENT MODIFIER & EXTENSIONS
+// ---------------------------------------------------------------------------------------------
+
+
+// 1. The Data Structure
+data class AlignmentModifier(val alignment: Alignment) : Modifier.Element
+
+// 2. The Modifier Function
+fun Modifier.alignment(alignment: Alignment): Modifier = this.then(AlignmentModifier(alignment))
+
+// 3. Helper
+fun Modifier.getAlignment(): Alignment? {
+    var align: Alignment? = null
+    this.foldIn(Unit) { _, element ->
+        if (element is AlignmentModifier) {
+            align = element.alignment
+        }
+        Unit
+    }
+    return align
+}
+
+// 4. Swift-like Extensions (KEEP THESE so "Alignment.leading" works)
+val Alignment.Companion.leading: Alignment.Horizontal get() = Start
+val Alignment.Companion.trailing: Alignment.Horizontal get() = End
+val Alignment.Companion.centerH: Alignment.Horizontal get() = CenterHorizontally
+val Alignment.Companion.centerV: Alignment.Vertical get() = CenterVertically
+
+// ---------------------------------------------------------------------------------------------
+// PLACEHOLDER STYLING
+// ---------------------------------------------------------------------------------------------
+
+data class PlaceholderStyleModifier(
+    val color: Color? = null,
+    val font: SystemFont? = null
+) : Modifier.Element
+
+fun Modifier.placeholderStyle(
+    color: Color? = null,
+    font: SystemFont? = null
+): Modifier = this.then(PlaceholderStyleModifier(color, font))

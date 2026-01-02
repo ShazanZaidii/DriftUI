@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
+    id("maven-publish")
 
 }
 
@@ -26,6 +27,12 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+        lint {
+            abortOnError = false
+        }
+
+
 }
 
 dependencies {
@@ -56,4 +63,18 @@ dependencies {
 
 
 
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
+
+                groupId = "com.example"
+                artifactId = "driftui"
+                version = "0.1.9"
+            }
+        }
+    }
 }

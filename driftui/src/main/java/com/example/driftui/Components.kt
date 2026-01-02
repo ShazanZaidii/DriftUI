@@ -81,6 +81,8 @@ import androidx.compose.runtime.MutableState
 
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.text.style.TextAlign
+
+import androidx.compose.foundation.shape.GenericShape
 // --- CUSTOM IMPORTS ---
 import com.example.driftui.Path
 import com.example.driftui.State
@@ -191,11 +193,86 @@ fun RoundedRectangle(
             .foundationBackground(fgColor)
     )
 }
+
+// --- TRIANGLE SHAPE DEFINITION ---
+// Points up by default (Top-Center -> Bottom-Right -> Bottom-Left)
+val TriangleShape = GenericShape { size, _ ->
+    moveTo(size.width / 2f, 0f)      // 1. Move to Top Center
+    lineTo(size.width, size.height)  // 2. Draw to Bottom Right
+    lineTo(0f, size.height)          // 3. Draw to Bottom Left
+    close()                          // 4. Close path (back to top)
+}
+
+// --- COMPOSABLE COMPONENT ---
+@Composable
+fun Triangle(
+    width: Int,
+    height: Int,
+    modifier: Modifier = Modifier
+) {
+    val fgColor = modifier.getForegroundColor() ?: driftColors.text
+
+    Box(
+        modifier = modifier
+            .size(width.dp, height.dp)
+            .clip(TriangleShape)
+            .foundationBackground(fgColor)
+    )
+}
+
+// --- ARROW SHAPE DEFINITION ---
+// Points Right by default
+val ArrowShape = GenericShape { size, _ ->
+    val width = size.width
+    val height = size.height
+
+    val shaftRatio = 0.35f // Thickness of the shaft (35% of height)
+    val headRatio = 0.4f   // Length of the head (40% of width)
+
+    val shaftTop = (height * (1 - shaftRatio)) / 2
+    val shaftBottom = (height * (1 + shaftRatio)) / 2
+    val headStart = width * (1 - headRatio)
+
+    // Draw the path
+    moveTo(0f, shaftTop)              // 1. Top-Left of Shaft
+    lineTo(headStart, shaftTop)       // 2. Shaft meets Head (Top)
+    lineTo(headStart, 0f)             // 3. Top Wing of Head
+    lineTo(width, height / 2)         // 4. Tip of Arrow
+    lineTo(headStart, height)         // 5. Bottom Wing of Head
+    lineTo(headStart, shaftBottom)    // 6. Shaft meets Head (Bottom)
+    lineTo(0f, shaftBottom)           // 7. Bottom-Left of Shaft
+    close()
+}
+
+// --- COMPOSABLE COMPONENT ---
+@Composable
+fun Arrow(
+    width: Int,
+    height: Int,
+    modifier: Modifier = Modifier
+) {
+    val fgColor = modifier.getForegroundColor() ?: driftColors.text
+
+    Box(
+        modifier = modifier
+            .size(width.dp, height.dp)
+            .clip(ArrowShape)
+            .foundationBackground(fgColor)
+    )
+}
+
+// --- SHAPE HELPER ---
+
+
+// --- SHAPE HELPER (For modifiers like .clipShape(Triangle())) ---
+
 fun Circle(): Shape = CircleShape
 fun Capsule(): Shape = RoundedCornerShape(percent = 50)
 fun RoundedRectangle(radius: Int): Shape = RoundedCornerShape(radius.dp)
 
+fun Triangle(): Shape = TriangleShape
 
+fun Arrow(): Shape = ArrowShape
 // ---------------------------------------------------------------------------------------------
 // TEXT & IMAGE
 // ---------------------------------------------------------------------------------------------
@@ -239,6 +316,23 @@ fun Text(text: String, modifier: Modifier = Modifier) {
     }
 }
 
+//@Composable
+//fun Image(
+//    name: String,
+//    modifier: Modifier = Modifier,
+//    contentScale: ContentScale = ContentScale.Fit
+//) {
+//    val ctx = LocalContext.current
+//    val id = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
+//
+//    ComposeImage(
+//        painter = painterResource(id),
+//        contentDescription = null,
+//        modifier = modifier,
+//        contentScale = contentScale
+//    )
+//}
+
 @Composable
 fun Image(
     name: String,
@@ -248,13 +342,22 @@ fun Image(
     val ctx = LocalContext.current
     val id = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
 
+    // 1. Extract the color from your custom modifier
+    val customColor = modifier.getForegroundColor()
+
+    // 2. Create a ColorFilter if a color was found
+    val colorFilter = customColor?.let { androidx.compose.ui.graphics.ColorFilter.tint(it) }
+
     ComposeImage(
         painter = painterResource(id),
         contentDescription = null,
         modifier = modifier,
-        contentScale = contentScale
+        contentScale = contentScale,
+        colorFilter = colorFilter // 3. Apply the tint here
     )
 }
+
+
 
 // ---------------------------------------------------------------------------------------------
 // INPUTS (TextField, SecureField)
@@ -271,15 +374,37 @@ fun TextField(
     val customColor = modifier.getForegroundColor()
     val (textAlign, contentAlign) = modifier.getTextAlignment()
 
+    // 2. Extract Font & Placeholder Style
+    var fontStyle: SystemFont? = null
+    var phStyle: PlaceholderStyleModifier? = null // <--- NEW
+
+    modifier.foldIn(Unit) { _, element ->
+        if (element is FontModifier) fontStyle = element.font
+        if (element is PlaceholderStyleModifier) phStyle = element // <--- NEW
+        Unit
+    }
+
     val inputColor = customColor ?: driftColors.text
-    val placeholderColor = customColor ?: Color.Gray
+
+    // Existing fallback: If no specific placeholder color, use customColor or Gray
+    val defaultPhColor = customColor ?: Color.Gray
+
+    // Default to 16.sp if no font modifier is provided
+    val fontSize = fontStyle?.size?.sp ?: 16.sp
+    val fontWeight = fontStyle?.weight ?: androidx.compose.ui.text.font.FontWeight.Normal
+
+    // Resolve Final Placeholder Specs
+    val finalPhColor = phStyle?.color ?: defaultPhColor
+    val finalPhFontSize = phStyle?.font?.size?.sp ?: fontSize
+    val finalPhWeight = phStyle?.font?.weight ?: fontWeight
 
     BasicTextField(
         value = text,
         onValueChange = onTextChange,
-        modifier = modifier,
+        modifier = modifier, // Keep modifier here for layout/padding
         textStyle = TextStyle.Default.copy(
-            fontSize = 16.sp,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
             color = inputColor,
             textAlign = textAlign // Apply horizontal text alignment
         ),
@@ -292,8 +417,9 @@ fun TextField(
                     MaterialText(
                         text = placeholder,
                         style = TextStyle.Default.copy(
-                            fontSize = 16.sp,
-                            color = placeholderColor,
+                            fontSize = finalPhFontSize, // <--- UPDATED
+                            fontWeight = finalPhWeight, // <--- UPDATED
+                            color = finalPhColor,       // <--- UPDATED
                             textAlign = textAlign
                         ),
                         modifier = Modifier.fillMaxWidth() // Ensure placeholder fills width to respect alignment
@@ -305,10 +431,11 @@ fun TextField(
     )
 }
 
+// Overload 1: For standard Compose MutableState
 @Composable
 fun TextField(
     placeholder: String,
-    value: MutableState<String>, // Accepts standard Compose/Storage state
+    value: MutableState<String>,
     modifier: Modifier = Modifier
 ) {
     TextField(
@@ -319,17 +446,17 @@ fun TextField(
     )
 }
 
-
+// Overload 2: For YOUR Custom 'State' class
 @Composable
 fun TextField(
     placeholder: String,
-    value: State<String>, // <--- Changing input to accept YOUR custom State
+    value: State<String>,
     modifier: Modifier = Modifier
 ) {
     TextField(
         placeholder = placeholder,
-        text = value.value,      // Read from your custom State
-        onTextChange = { value.set(it) }, // Write to your custom State
+        text = value.value,
+        onTextChange = { value.set(it) },
         modifier = modifier
     )
 }
@@ -349,17 +476,37 @@ fun SecureField(
     val customColor = modifier.getForegroundColor()
     val (textAlign, contentAlign) = modifier.getTextAlignment()
 
-    // 2. Resolve Colors
-    // If you provided a color, use it. Otherwise, default to theme text / gray.
+    // 2. Extract Font & Placeholder Style
+    var fontStyle: SystemFont? = null
+    var phStyle: PlaceholderStyleModifier? = null // <--- NEW
+
+    modifier.foldIn(Unit) { _, element ->
+        if (element is FontModifier) fontStyle = element.font
+        if (element is PlaceholderStyleModifier) phStyle = element // <--- NEW
+        Unit
+    }
+
+    // 3. Resolve Colors & Fonts
     val inputColor = customColor ?: driftColors.text
-    val placeholderColor = customColor ?: Color.Gray
+
+    // Existing fallback
+    val defaultPhColor = customColor ?: Color.Gray
+
+    val fontSize = fontStyle?.size?.sp ?: 16.sp
+    val fontWeight = fontStyle?.weight ?: androidx.compose.ui.text.font.FontWeight.Normal
+
+    // Resolve Final Placeholder Specs
+    val finalPhColor = phStyle?.color ?: defaultPhColor
+    val finalPhFontSize = phStyle?.font?.size?.sp ?: fontSize
+    val finalPhWeight = phStyle?.font?.weight ?: fontWeight
 
     BasicTextField(
         value = text,
         onValueChange = onTextChange,
         modifier = modifier,
         textStyle = TextStyle.Default.copy(
-            fontSize = 16.sp,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
             color = inputColor,
             textAlign = textAlign
         ),
@@ -373,8 +520,9 @@ fun SecureField(
                     MaterialText(
                         text = placeholder,
                         style = TextStyle.Default.copy(
-                            fontSize = 16.sp,
-                            color = placeholderColor, // Use custom color if provided
+                            fontSize = finalPhFontSize, // <--- UPDATED
+                            fontWeight = finalPhWeight, // <--- UPDATED
+                            color = finalPhColor,       // <--- UPDATED
                             textAlign = textAlign
                         ),
                         modifier = Modifier.fillMaxWidth()
@@ -401,7 +549,7 @@ fun SecureField(
     )
 }
 
-// Overload 2: For YOUR Custom 'State' class (This fixes the error)
+// Overload 2: For YOUR Custom 'State' class
 @Composable
 fun SecureField(
     placeholder: String,
@@ -410,8 +558,8 @@ fun SecureField(
 ) {
     SecureField(
         placeholder = placeholder,
-        text = value.value,      // Read from your custom State
-        onTextChange = { value.set(it) }, // Write to your custom State
+        text = value.value,
+        onTextChange = { value.set(it) },
         modifier = modifier
     )
 }
@@ -442,10 +590,20 @@ fun Button(
 fun Divider(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-    thickness: Int = 1
+    thickness: Int = 1,
+    width: Number? = null // Accepts Int, Double, Float
 ) {
+    // 1. Start with the passed modifier (containing padding, offset, etc.)
+    var finalModifier = modifier
+
+    // 2. Append the width constraint if provided
+    if (width != null) {
+        finalModifier = finalModifier.width(width.toFloat().dp)
+    }
+
+    // 3. Render
     MaterialDivider(
-        modifier = modifier,
+        modifier = finalModifier,
         color = color,
         thickness = thickness.dp
     )
@@ -1023,5 +1181,79 @@ fun DriftCanvas(
                 modifier = Modifier.fillMaxSize()
             )
         }
+    }
+}
+
+// =============================================================================================
+// COLOR EXTENSIONS (Darker / Lighter)
+// =============================================================================================
+
+/**
+ * Returns a darker version of the color.
+ * @param factor 0.0 to 1.0 (default 0.2). Higher is darker.
+ */
+fun Color.darker(factor: Float = 0.2f): Color {
+    val r = (this.red * (1 - factor)).coerceIn(0f, 1f)
+    val g = (this.green * (1 - factor)).coerceIn(0f, 1f)
+    val b = (this.blue * (1 - factor)).coerceIn(0f, 1f)
+    return Color(r, g, b, this.alpha)
+}
+
+/**
+ * Returns a lighter version of the color.
+ * @param factor 0.0 to 1.0 (default 0.2). Higher is lighter.
+ */
+fun Color.lighter(factor: Float = 0.2f): Color {
+    val r = (this.red + (1 - this.red) * factor).coerceIn(0f, 1f)
+    val g = (this.green + (1 - this.green) * factor).coerceIn(0f, 1f)
+    val b = (this.blue + (1 - this.blue) * factor).coerceIn(0f, 1f)
+    return Color(r, g, b, this.alpha)
+}
+
+// =============================================================================================
+// COLOR HELPERS (RGB / RGBA / HEX)
+// =============================================================================================
+
+/**
+ * Create a color using 0-255 integer values.
+ * Usage: rgb(255, 0, 0) // Red
+ */
+fun rgb(r: Int, g: Int, b: Int): Color {
+    return Color(r, g, b)
+}
+
+/**
+ * Create a color using 0-255 RGB integers and a 0.0-1.0 Alpha double.
+ * Usage: rgba(255, 0, 0, 0.5) // 50% Transparent Red
+ */
+fun rgba(r: Int, g: Int, b: Int, a: Double): Color {
+    return Color(r, g, b, (a * 255).toInt())
+}
+
+/**
+ * Create a color from a Hex string.
+ * Usage: hex("#FF0000") or hex("FF0000")
+ */
+fun hex(hexString: String): Color {
+    val cleanHex = hexString.removePrefix("#")
+    return try {
+        when (cleanHex.length) {
+            6 -> {
+                val r = cleanHex.substring(0, 2).toInt(16)
+                val g = cleanHex.substring(2, 4).toInt(16)
+                val b = cleanHex.substring(4, 6).toInt(16)
+                Color(r, g, b)
+            }
+            8 -> {
+                val a = cleanHex.substring(0, 2).toInt(16)
+                val r = cleanHex.substring(2, 4).toInt(16)
+                val g = cleanHex.substring(4, 6).toInt(16)
+                val b = cleanHex.substring(6, 8).toInt(16)
+                Color(r, g, b, a)
+            }
+            else -> Color.Black // Fallback for invalid hex
+        }
+    } catch (e: Exception) {
+        Color.Black
     }
 }

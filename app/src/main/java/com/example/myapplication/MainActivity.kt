@@ -29,9 +29,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
 //        WindowCompat.setDecorFitsSystemWindows(window, true)
         super.onCreate(savedInstanceState)
+        DriftRegistry.initialize(applicationContext)
+        DriftStorage.initialize(applicationContext)
         setContent {
-//                metro()
-            MyScreen()
+                metro()
+//            MyScreen()
+//            test7()
         }
     }
 
