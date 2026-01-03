@@ -274,6 +274,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalConfiguration
+
+
+object DriftScale {
+    var scaleFactor = 1f
+    // The width you designed for (e.g., iPhone 13 / Pixel 6 is usually 390 or 375)
+    const val REFERENCE_WIDTH = 390f
+}
 
 // ---------------------------------------------------------------------------------------------
 // GLOBAL ALIGNMENT VARIABLES (For easy access like 'top', 'leading')
@@ -500,9 +508,11 @@ fun DriftView(
     val context = androidx.compose.ui.platform.LocalContext.current
     DriftRegistry.context = context.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
-
     val activity = context as? android.app.Activity
     DriftGlobals.currentActivity = activity
+
+    val config = LocalConfiguration.current
+    DriftScale.scaleFactor = config.screenWidthDp / DriftScale.REFERENCE_WIDTH
 
     LaunchedEffect(Unit) {
         DriftAudio.initialize(context)
@@ -541,3 +551,4 @@ fun ColumnScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.we
 fun RowScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
 @Composable
 fun Spacer(size: Int) = androidx.compose.foundation.layout.Spacer(Modifier.size(size.dp))
+

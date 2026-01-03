@@ -53,7 +53,7 @@ fun test7(){
     DriftView() {
         val viewModel: MetroViewModel = StateObject()
         VStack() {
-            Text(viewModel.name)
+
         }
     }
 }

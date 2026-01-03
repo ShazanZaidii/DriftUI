@@ -179,17 +179,17 @@ fun Capsule(
 
 @Composable
 fun RoundedRectangle(
-    width: Int,
-    height: Int,
-    cornerRadius: Int,
+    width: Number,
+    height: Number,
+    cornerRadius: Number,
     modifier: Modifier = Modifier
 ) {
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
 
     Box(
         modifier = modifier
-            .size(width.dp, height.dp)
-            .clip(RoundedCornerShape(cornerRadius.dp))
+            .size(width.toFloat().dp, height.toFloat().dp)
+            .clip(RoundedCornerShape(cornerRadius.toFloat().dp))
             .foundationBackground(fgColor)
     )
 }

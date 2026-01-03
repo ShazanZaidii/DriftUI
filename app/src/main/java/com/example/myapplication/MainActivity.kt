@@ -33,80 +33,27 @@ class MainActivity : ComponentActivity() {
         DriftStorage.initialize(applicationContext)
         setContent {
                 metro()
+//            hik()
 //            MyScreen()
 //            test7()
         }
-    }
+    }}
+
+//@Composable
+//fun hik(){
+//    var isPresented = State(false)
+//    DriftView() {
+//        VStack() {
+//            Text("Hey")
+//            Toggle(value = isPresented) {
+//                Text("Toggle")
+//            }
+//        }
+//        SideMenu(isPresented = isPresented ) {
+//            MenuItem() { }
+//        }
+//    }
+//}
 
 
-    //Data Model
-    data class Model(
-        var id: Long? = null,
-        var name: String,
-        var age: Int
-    )
 
-    @Composable
-    fun test4() {
-        //Creating a Store
-        val users = DriftStore("database", Model::class)
-
-        //Editing by first finding the id then passing it to edit.
-        val umair = users.items.find { it.name == "Umair" }
-        users.edit(umair) {
-            age = 6
-        }
-
-        val selected2 = users.filter { it.name.startsWith("Ak") && it.name.endsWith("a") }
-
-        // Sorting users:
-        val sorted = users.sort(Sort(Model::name, Order.Descending)) //Using Descending Order
-        //CODE: val sorted = users.sort(Sort(Model::name)) //Using Ascending Order - No need to explicitly mention. It will be Ascending by default.
-
-        //For Compound Sorting-
-        // Code: val sorted = users.sort(Sort(Model::name, Order.Descending), Sort(Model::age, Order.Descending)) //Using Descending Order
-
-        DriftView() {
-            //Create
-            if (users.items.isEmpty()) {
-
-                Text("Add", Modifier.onTapGesture(action = {
-                    users.add(Model(1, "Sameer", 12))
-                    users.add(Model(2, "Akbar", 7))
-                    users.add(Model(3, "Akmala", 43))
-                    users.add(Model(4, "Akshar", 21))
-                    users.add(Model(5, "Umair", 33))
-                }))
-            }
-
-            VStack {
-
-                if (!users.items.isEmpty()) {
-                    Text("Original Data:", Modifier.font(system(18, light)))
-                    List(users.items) { s ->
-                        Text("${s.age}.  ${s.name}")
-                    }
-
-                    //Original List:
-
-                    Spacer(13)
-                    Text("Sorted Data:", Modifier.font(system(18, light)))
-                    List(sorted) { s ->
-                        Text("${s.age}.  ${s.name}")
-                    }
-                    Spacer(13)
-                    List(selected2) { s ->
-                        Text("${s.age}.  ${s.name}")
-                    }
-
-                }
-
-                Text(
-                    "Nuke",
-                    Modifier.padding(top = 70).onTapGesture(action = { users.removeAll() })
-                )
-            }
-        }
-    }
-
-}

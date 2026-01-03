@@ -29,6 +29,33 @@ import kotlin.math.abs
 import androidx.compose.material3.ExperimentalMaterial3Api
 import android.app.Activity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.*
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.*
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 // --- CUSTOM IMPORTS ---
 import com.example.driftui.driftColors
 import com.example.driftui.Text
@@ -525,7 +552,7 @@ fun NavigationStack(
         Unit
     }
 
-    var hideBackButton = false
+    var hideBackButton = true
     modifier.foldIn(Unit) { _, el ->
         if (el is BackButtonHiddenModifier) hideBackButton = el.hidden
         Unit
@@ -702,3 +729,27 @@ fun NavigationStack(
 fun useNav(): DriftNavController {
     return LocalNavController.current
 }
+
+class NavigationAction internal constructor(
+    private val state: State<(() -> Unit)?>
+) {
+
+    fun set(action: () -> Unit) {
+        state.set(action)
+    }
+
+    operator fun invoke() {
+        state.value?.invoke()
+    }
+}
+
+@Composable
+fun useNavigationAction(): NavigationAction {
+    val state = remember { State<(() -> Unit)?>(null) }
+    return NavigationAction(state)
+}
+
+
+
+
+

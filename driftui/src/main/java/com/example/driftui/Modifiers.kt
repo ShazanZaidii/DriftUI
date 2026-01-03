@@ -38,47 +38,42 @@ import androidx.compose.ui.unit.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 // ---------------------------------------------------------------------------------------------
-// PADDING (Supports Negative Values!)
+// PADDING (Updated to accept Number for responsive scaling)
 // ---------------------------------------------------------------------------------------------
 
-fun Modifier.padding(all: Int): Modifier = this.padding(all, all, all, all)
+fun Modifier.padding(all: Number): Modifier = this.padding(all, all, all, all)
 
-fun Modifier.padding(horizontal: Int = 0, vertical: Int = 0): Modifier =
+fun Modifier.padding(horizontal: Number = 0, vertical: Number = 0): Modifier =
     this.padding(vertical, vertical, horizontal, horizontal)
 
 fun Modifier.padding(
-    top: Int = 0,
-    bottom: Int = 0,
-    leading: Int = 0,
-    trailing: Int = 0
+    top: Number = 0,
+    bottom: Number = 0,
+    leading: Number = 0,
+    trailing: Number = 0
 ): Modifier = this.layout { measurable, constraints ->
-    // 1. Convert everything to Pixels
-    val topPx = top.dp.roundToPx()
-    val bottomPx = bottom.dp.roundToPx()
-    val startPx = leading.dp.roundToPx()
-    val endPx = trailing.dp.roundToPx()
+    // 1. Convert Number -> Float -> Dp -> Px
+    val topPx = top.toFloat().dp.roundToPx()
+    val bottomPx = bottom.toFloat().dp.roundToPx()
+    val startPx = leading.toFloat().dp.roundToPx()
+    val endPx = trailing.toFloat().dp.roundToPx()
 
     val horizontalPadding = startPx + endPx
     val verticalPadding = topPx + bottomPx
 
     // 2. Adjust Constraints
-    // Negative padding INCREASES available space for the child (offset adds -(-10) = +10)
     val childConstraints = constraints.offset(-horizontalPadding, -verticalPadding)
     val placeable = measurable.measure(childConstraints)
 
     // 3. Calculate Final Size
-    // Negative padding SHRINKs the wrapper size
     val width = (placeable.width + horizontalPadding).coerceAtLeast(0)
     val height = (placeable.height + verticalPadding).coerceAtLeast(0)
 
     layout(width, height) {
         // 4. Place Content
-        // Positive 'top' moves content down. Negative 'top' moves content up.
-        // using placeRelative handles LTR/RTL automatically
         placeable.placeRelative(startPx, topPx)
     }
 }
-
 // ---------------------------------------------------------------------------------------------
 // BACKGROUND
 // ---------------------------------------------------------------------------------------------
@@ -224,12 +219,12 @@ fun Modifier.align(x: Int, y: Int): Modifier = this.then(TextAlignmentModifier(x
 
 
 // 1. Simple Border (Square)
-fun Modifier.border(color: Color, width: Int): Modifier =
-    this.then(Modifier.border(width.dp, color))
+fun Modifier.border(color: Color, width: Number): Modifier =
+    this.then(Modifier.border(width.toFloat().dp, color))
 
 // 2. Rounded Border (NEW)
-fun Modifier.border(color: Color, width: Int, cornerRadius: Int): Modifier =
-    this.then(Modifier.border(width.dp, color, RoundedCornerShape(cornerRadius.dp)))
+fun Modifier.border(color: Color, width: Number, cornerRadius: Number): Modifier =
+    this.then(Modifier.border(width.toFloat().dp, color, RoundedCornerShape(cornerRadius.toFloat().dp)))
 
 
 fun Modifier.shadow(
@@ -298,7 +293,7 @@ val ultralight = FontWeight.ExtraLight
 val black = FontWeight.Black
 
 data class SystemFont(val size: Int, val weight: FontWeight = regular)
-fun system(size: Int, weight: FontWeight = regular) = SystemFont(size, weight)
+fun system(size: Number, weight: FontWeight = regular) = SystemFont(size.toInt(), weight)
 
 data class FontModifier(val font: SystemFont) : Modifier.Element
 data class ForegroundColorModifier(val color: Color) : Modifier.Element
@@ -313,7 +308,8 @@ fun Modifier.font(font: SystemFont) = this.then(FontModifier(font))
 fun Modifier.foregroundStyle(color: Color) = this.then(ForegroundColorModifier(color))
 
 fun Modifier.clipShape(shape: Shape): Modifier = this.clip(shape)
-fun Modifier.cornerRadius(radius: Int): Modifier = this.clipShape(RoundedRectangle(radius))
+fun Modifier.cornerRadius(radius: Number): Modifier = this.clipShape(RoundedRectangle(radius.toInt()))
+
 
 
 // ---------------------------------------------------------------------------------------------
@@ -601,3 +597,4 @@ fun Modifier.placeholderStyle(
     color: Color? = null,
     font: SystemFont? = null
 ): Modifier = this.then(PlaceholderStyleModifier(color, font))
+

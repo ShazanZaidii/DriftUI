@@ -24,3 +24,11 @@ val deviceWidth: Dp
 val deviceHeight: Dp
     @Composable
     get() = LocalConfiguration.current.screenHeightDp.dp
+
+//unit:
+
+val unit: Double
+    get() = DriftScale.scaleFactor.toDouble()
+
+val Number.u: Double
+    get() = this.toDouble() * unit

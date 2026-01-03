@@ -28,9 +28,9 @@ android {
         jvmTarget = "11"
     }
 
-        lint {
-            abortOnError = false
-        }
+    lint {
+        abortOnError = false
+    }
 
 
 }
@@ -73,7 +73,7 @@ afterEvaluate {
 
                 groupId = "com.example"
                 artifactId = "driftui"
-                version = "0.1.9"
+                version = "0.1.17"
             }
         }
     }
