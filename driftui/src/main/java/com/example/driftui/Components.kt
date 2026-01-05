@@ -140,7 +140,7 @@ fun Rectangle(
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
 
     Box(
-        modifier = modifier
+        modifier = modifier.applyShadowIfNeeded()
             .size(width.dp, height.dp)
             .clip(androidx.compose.ui.graphics.RectangleShape)
             .foundationBackground(fgColor)
@@ -154,7 +154,7 @@ fun Circle(
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
 
     Box(
-        modifier = modifier
+        modifier = modifier.applyShadowIfNeeded()
             .size(radius.dp * 2)
             .clip(CircleShape)
             .foundationBackground(fgColor)
@@ -170,7 +170,7 @@ fun Capsule(
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
 
     Box(
-        modifier = modifier
+        modifier = modifier.applyShadowIfNeeded()
             .size(width.dp, height.dp)
             .clip(RoundedCornerShape(percent = 50))
             .foundationBackground(fgColor)
@@ -187,7 +187,7 @@ fun RoundedRectangle(
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
 
     Box(
-        modifier = modifier
+        modifier = modifier.applyShadowIfNeeded()
             .size(width.toFloat().dp, height.toFloat().dp)
             .clip(RoundedCornerShape(cornerRadius.toFloat().dp))
             .foundationBackground(fgColor)
@@ -213,7 +213,7 @@ fun Triangle(
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
 
     Box(
-        modifier = modifier
+        modifier = modifier.applyShadowIfNeeded()
             .size(width.dp, height.dp)
             .clip(TriangleShape)
             .foundationBackground(fgColor)
@@ -576,7 +576,7 @@ fun Button(
     label: @Composable BoxScope.() -> Unit
 ) {
     Box(
-        modifier = modifier.clickable(
+        modifier = modifier.applyShadowIfNeeded().clickable(
             onClick = action,
             interactionSource = remember { MutableInteractionSource() },
             indication = null

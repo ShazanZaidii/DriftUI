@@ -316,13 +316,24 @@ fun VStack(
     spacing: Int = 0,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val modifierAlignment = modifier.getAlignment()
+
+    val horizontalAlignment =
+        modifierAlignment?.toHorizontal() ?: alignment
+
+    val verticalArrangement =
+        modifierAlignment?.toVertical()?.let {
+            Arrangement.spacedBy(spacing.dp, it)
+        } ?: Arrangement.spacedBy(spacing.dp)
+
     Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = alignment,
-        verticalArrangement = Arrangement.spacedBy(spacing.dp),
+        modifier = modifier.fillMaxWidth().applyShadowIfNeeded(),
+        horizontalAlignment = horizontalAlignment,
+        verticalArrangement = verticalArrangement,
         content = content
     )
 }
+
 
 // 2. CONVENIENCE (Alignment First - Supports VStack(leading))
 @Composable
@@ -343,13 +354,22 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val modifierAlignment = modifier.getAlignment()
+
+    val vertical =
+        modifierAlignment?.toVertical() ?: alignment
+
+    val horizontal =
+        modifierAlignment?.toHorizontal() ?: Alignment.CenterHorizontally
+
     Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.dp, alignment),
+        horizontalAlignment = horizontal,
+        verticalArrangement = Arrangement.spacedBy(spacing.dp, vertical),
         content = content
     )
 }
+
 
 // 4. 2D ALIGNMENT OVERLOAD (Handles .topLeading, .center)
 @Composable
@@ -359,16 +379,23 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val (vertArrangement, horizAlign) = alignment.toColumnRules()
+    val modifierAlignment = modifier.getAlignment()
+    val effectiveAlignment = modifierAlignment ?: alignment
+
+    val (vertArrangement, horizAlign) = effectiveAlignment.toColumnRules()
 
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = horizAlign,
-        verticalArrangement = if (vertArrangement == Arrangement.Top) Arrangement.spacedBy(spacing.dp)
-        else Arrangement.spacedBy(spacing.dp, alignment.toVertical()),
+        verticalArrangement =
+            if (vertArrangement == Arrangement.Top)
+                Arrangement.spacedBy(spacing.dp)
+            else
+                Arrangement.spacedBy(spacing.dp, effectiveAlignment.toVertical()),
         content = content
     )
 }
+
 
 // --- HSTACK OVERLOADS ---
 
@@ -380,13 +407,24 @@ fun HStack(
     spacing: Int = 0,
     content: @Composable RowScope.() -> Unit
 ) {
+    val modifierAlignment = modifier.getAlignment()
+
+    val verticalAlignment =
+        modifierAlignment?.toVertical() ?: alignment
+
+    val horizontalArrangement =
+        modifierAlignment?.toHorizontal()?.let {
+            Arrangement.spacedBy(spacing.dp, it)
+        } ?: Arrangement.spacedBy(spacing.dp)
+
     Row(
-        modifier = modifier,
-        verticalAlignment = alignment,
-        horizontalArrangement = Arrangement.spacedBy(spacing.dp),
+        modifier = modifier.applyShadowIfNeeded(),
+        verticalAlignment = verticalAlignment,
+        horizontalArrangement = horizontalArrangement,
         content = content
     )
 }
+
 
 // 2. CONVENIENCE (Alignment First - Supports HStack(top))
 @Composable
@@ -399,6 +437,7 @@ fun HStack(
     HStack(modifier, alignment, spacing, content)
 }
 
+
 // 3. HORIZONTAL OVERLOAD (Handles .leading, .trailing)
 @Composable
 fun HStack(
@@ -407,13 +446,22 @@ fun HStack(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit
 ) {
+    val modifierAlignment = modifier.getAlignment()
+
+    val horizontal =
+        modifierAlignment?.toHorizontal() ?: alignment
+
+    val vertical =
+        modifierAlignment?.toVertical() ?: Alignment.CenterVertically
+
     Row(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(spacing.dp, alignment),
+        verticalAlignment = vertical,
+        horizontalArrangement = Arrangement.spacedBy(spacing.dp, horizontal),
         content = content
     )
 }
+
 
 // 4. 2D ALIGNMENT OVERLOAD
 @Composable
@@ -423,16 +471,23 @@ fun HStack(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit
 ) {
-    val (vertAlign, horizArrangement) = alignment.toRowRules()
+    val modifierAlignment = modifier.getAlignment()
+    val effectiveAlignment = modifierAlignment ?: alignment
+
+    val (vertAlign, horizArrangement) = effectiveAlignment.toRowRules()
 
     Row(
         modifier = modifier,
         verticalAlignment = vertAlign,
-        horizontalArrangement = if (horizArrangement == Arrangement.Start) Arrangement.spacedBy(spacing.dp)
-        else Arrangement.spacedBy(spacing.dp, alignment.toHorizontal()),
+        horizontalArrangement =
+            if (horizArrangement == Arrangement.Start)
+                Arrangement.spacedBy(spacing.dp)
+            else
+                Arrangement.spacedBy(spacing.dp, effectiveAlignment.toHorizontal()),
         content = content
     )
 }
+
 
 
 // ---------------------------------------------------------------------------------------------
@@ -491,13 +546,37 @@ private fun Alignment.toHorizontal(): Alignment.Horizontal {
 // ---------------------------------------------------------------------------------------------
 
 @Composable
+private fun BoxScope.ApplyAlignmentIfNeeded(
+    modifier: Modifier,
+    content: @Composable () -> Unit
+) {
+    val alignment = modifier.getAlignment()
+
+    if (alignment != null) {
+        Box(
+            modifier = Modifier.align(alignment)
+        ) {
+            content()
+        }
+    } else {
+        content()
+    }
+}
+
+@Composable
 fun ZStack(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.Center,
-    content: @Composable BoxScope.() -> Unit
+    content: @Composable () -> Unit
 ) {
-    Box(modifier = modifier, contentAlignment = contentAlignment, content = content)
+    Box(
+        modifier = modifier.applyShadowIfNeeded(),
+        contentAlignment = contentAlignment
+    ) {
+        content()
+    }
 }
+
 
 @Composable
 fun DriftView(

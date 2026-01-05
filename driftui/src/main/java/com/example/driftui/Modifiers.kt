@@ -28,7 +28,7 @@ import com.example.driftui.State
 import com.example.driftui.RoundedRectangle
 import androidx.compose.ui.Alignment
 
-
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.offset
 
@@ -36,6 +36,10 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.offset
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.toArgb
+
 
 // ---------------------------------------------------------------------------------------------
 // PADDING (Updated to accept Number for responsive scaling)
@@ -227,21 +231,86 @@ fun Modifier.border(color: Color, width: Number, cornerRadius: Number): Modifier
     this.then(Modifier.border(width.toFloat().dp, color, RoundedCornerShape(cornerRadius.toFloat().dp)))
 
 
+data class ShadowModifier(
+    val color: Color,
+    val radius: Float,
+    val offsetX: Float,
+    val offsetY: Float,
+    val cornerRadius: Float? = null
+) : Modifier.Element
+
+
+
 fun Modifier.shadow(
-    radius: Int,
-    color: Color = Color.Black.copy(alpha = 0.5f),
-    x: Int = 0,
-    y: Int = 0
-): Modifier =
-    this.then(
-        Modifier.shadow(
-            elevation = radius.dp,
-            shape = androidx.compose.ui.graphics.RectangleShape,
-            ambientColor = color,
-            spotColor = color
-        )
-            .offset(x = x.dp, y = y.dp)
+    color: Color = Color.Black.copy(alpha = 0.25f),
+    radius: Number,
+    x: Number = 0,
+    y: Number = 0,
+    cornerRadius: Number? = null
+): Modifier = this.then(
+    ShadowModifier(
+        color = color,
+        radius = radius.toFloat(),
+        offsetX = x.toFloat(),
+        offsetY = y.toFloat(),
+        cornerRadius = cornerRadius?.toFloat()
     )
+)
+
+
+fun Modifier.applyShadowIfNeeded(): Modifier =
+    this.then(
+        Modifier.drawBehind {
+            var shadow: ShadowModifier? = null
+
+            this@applyShadowIfNeeded.foldIn(Unit) { _, element ->
+                if (element is ShadowModifier) shadow = element
+                Unit
+            }
+
+            val s = shadow ?: return@drawBehind
+
+            drawIntoCanvas { canvas ->
+                val paint = Paint().apply {
+                    color = s.color
+                    asFrameworkPaint().apply {
+                        isAntiAlias = true
+                        setShadowLayer(
+                            s.radius,
+                            s.offsetX,
+                            s.offsetY,
+                            s.color.toArgb()
+                        )
+                    }
+                }
+
+                if (s.cornerRadius != null && s.cornerRadius > 0f) {
+                    canvas.drawRoundRect(
+                        0f,
+                        0f,
+                        size.width,
+                        size.height,
+                        s.cornerRadius,
+                        s.cornerRadius,
+                        paint
+                    )
+                } else {
+                    canvas.drawRect(
+                        0f,
+                        0f,
+                        size.width,
+                        size.height,
+                        paint
+                    )
+                }
+
+            }
+        }
+    )
+
+
+
+
 
 
 // ---------------------------------------------------------------------------------------------
