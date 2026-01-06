@@ -1,5 +1,6 @@
-<h1>Till now it supports SwiftUI like: </h1>
-<h2>1. H,V and ZStacks -Same syntax, but you can wrap these in DriftView{} to center align and start modifying as in SwiftUI</h2>
+<h1>Till now it supports: </h1>
+*NOTE: Do not forget to wrap everything in DriftView{} it acts as an initialiser and manager for other blocks.
+<h2>1. H,V and ZStacks  </h2>
 <h2>2. Paddings Example- Text("hello", Modifier.padding(leading = 20) </br> *****[Note: Paddings can't be negative]******</h2>
 <h2>3. Background & Color</h2>
 <h2>4. Shapes, ClipShape - Remember clipShape should be used before giving a background color</h2>
@@ -765,12 +766,91 @@ List(items = sortedList) { station ->
 ```
 
 <h1>33. Add Ons:</h1>
-Device Specific Variables- statusBarHeight & width N deviceHeight & width,
-Triangle - Shape, 
-Darker - color Modifier
-Rgb, rgba, hex - color formats.
-pushReplacement for stacks
-.seed 
+* Device Specific Variables- statusBarHeight & width N deviceHeight & width, -> To access values: statusBarHeight.value, statusBarWidth.value, deviceHeight.value, deviceWidth.value
+* Triangle - Shape, 
+* Darker - color Modifier ->  .background(Color.yellow.darker(0.8f))
+* Rgb, rgba, hex - color formats.
+* useNav and useNavigationAction
+* pushReplacement for navStacks
+* Side Menu
+* .seed in Advanced persistence [We do this to seed the data values so they are ready on app's first launch too "smoothly"] - 
+
+<h2> Push Replacement: [To use when you need to control navigation Stack while being outside of it.. Say from SideMenu ]</h2>
+
+```
+//Define a variable
+val logoutAction = useNavigationAction()
+
+// Inside Navigation Stack
+NavigationStack() {
+            val nav = useNav()
+
+            logoutAction.set {
+                nav.pushReplacement { Login() }
+            }
+}
+
+//Controlling from Side Menu:
+SideMenu(
+            isOpen = showMenu.value,
+            modifier = Modifier.frame(width = 320.wu).background(Color.white),
+            onDismiss = { showMenu.set(false) }
+        ) {
+MenuItem(MenuPlacement.Bottom) {
+                Button(
+                    action = {
+                        logoutAction()     //******HERE- You have to call it like a function
+                        viewModel.isLoggedIn.value = false
+                        showMenu.set(false)
+                    },
+                    modifier = Modifier.padding(all = 20.u).padding(bottom = 20.hu)
+                ) {
+                    HStack() {
+                        Image("logout_img", Modifier.frame(width = 25.wu, height = 25.hu))
+                        Text("Logout", Modifier.font(system(18, medium)).foregroundStyle(Color.black).padding(leading = 5.wu))
+                    }
+
+                }
+            }
+}
+```
+
+<h2> Seeding: </h2>
+    
+```
+//Defining the class
+data class User(
+    val username: String,
+    val password: String
+)
+
+//Connecting it with DriftStorage and assigning it a file name.
+val users = DriftStore("users_db", User::class)
+
+//Seeding: 
+users.seed(
+            User("admin", "admin"),
+            User("user1", "user1")
+        ) {
+            //To check duplicacy based on username
+            it.username
+        }
+
+```
+
+<h1> 34. Added linearGradient and .u, .hu, .wu </h1>
+   <h3> .u [short for unit]- for unit scaling across x-y direction for example in Text size, cornerRadius, </h3>
+   <h3> .hu [short for heightUnit]- for unit scaling across y direction for example in padding/ offsets/ frames/ Shapes-height in y directional parameters  </h3>
+   <h3> .wu [short for WidthUnit]- for unit scaling across x direction for example in padding/ offsets/ frames/ Shapes-width in x directional parameters  </h3>
+
+```
+Modifier.frame(width = 320.wu, height = 100.hu)
+
+or on Text:
+
+Text("Hello", Modifier.font(system(size = 28.u, weight = medium).foregroundStyle(linearGradient(listOf(Color.red, Color.black, Color.purple))) //There is no limit on number of colors used for creating a Gradient
+
+```
 
 // Inside MainActivity.onCreate before setContent{}
 DriftStorage.initialize(applicationContext)  // Starts SharedPreferences - "Storage" you need this to use Storage variables inside viewModels or classes
