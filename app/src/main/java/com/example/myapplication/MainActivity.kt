@@ -32,8 +32,8 @@ class MainActivity : ComponentActivity() {
         DriftRegistry.initialize(applicationContext)
         DriftStorage.initialize(applicationContext)
         setContent {
-//                metro()
-                test7()
+                metro()
+//                test7()
 
 //            hik()
 //            MyScreen()

@@ -278,10 +278,19 @@ import androidx.compose.ui.platform.LocalConfiguration
 
 
 object DriftScale {
-    var scaleFactor = 1f
-    // The width you designed for (e.g., iPhone 13 / Pixel 6 is usually 390 or 375)
+
+    // Reference device you designed on
     const val REFERENCE_WIDTH = 390f
+    const val REFERENCE_HEIGHT = 780f
+
+    var widthScale = 1f
+    var heightScale = 1f
+
+    // Perceptual scale (for fonts, icons, radius)
+    val visualScale: Float
+        get() = kotlin.math.sqrt(widthScale * heightScale)
 }
+
 
 // ---------------------------------------------------------------------------------------------
 // GLOBAL ALIGNMENT VARIABLES (For easy access like 'top', 'leading')
@@ -591,7 +600,13 @@ fun DriftView(
     DriftGlobals.currentActivity = activity
 
     val config = LocalConfiguration.current
-    DriftScale.scaleFactor = config.screenWidthDp / DriftScale.REFERENCE_WIDTH
+
+    DriftScale.widthScale =
+        config.screenWidthDp / DriftScale.REFERENCE_WIDTH
+
+    DriftScale.heightScale =
+        config.screenHeightDp / DriftScale.REFERENCE_HEIGHT
+
 
     LaunchedEffect(Unit) {
         DriftAudio.initialize(context)
@@ -630,4 +645,3 @@ fun ColumnScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.we
 fun RowScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
 @Composable
 fun Spacer(size: Int) = androidx.compose.foundation.layout.Spacer(Modifier.size(size.dp))
-

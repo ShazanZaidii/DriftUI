@@ -39,6 +39,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+
 
 
 // ---------------------------------------------------------------------------------------------
@@ -84,6 +89,16 @@ fun Modifier.padding(
 
 fun Modifier.background(color: Color): Modifier =
     this.then(Modifier.foundationBackground(color))
+
+fun Modifier.background(gradient: GradientColor): Modifier =
+    this.then(
+        Modifier.drawBehind {
+            drawRect(
+                brush = Brush.linearGradient(gradient.colors)
+            )
+        }
+    )
+
 
 
 // ---------------------------------------------------------------------------------------------
@@ -374,7 +389,19 @@ data class BackButtonHiddenModifier(val hidden: Boolean) : Modifier.Element
 fun Modifier.navigationBarBackButtonHidden(hidden: Boolean): Modifier =
     this.then(BackButtonHiddenModifier(hidden))
 fun Modifier.font(font: SystemFont) = this.then(FontModifier(font))
-fun Modifier.foregroundStyle(color: Color) = this.then(ForegroundColorModifier(color))
+fun Modifier.foregroundStyle(color: Color) =
+    this.then(ForegroundColorModifier(color))
+
+fun Modifier.foregroundStyle(gradient: GradientColor): Modifier =
+    this.then(
+        Modifier.drawWithContent {
+            drawContent()
+            drawRect(
+                brush = Brush.linearGradient(gradient.colors),
+                blendMode = BlendMode.SrcAtop
+            )
+        }
+    )
 
 fun Modifier.clipShape(shape: Shape): Modifier = this.clip(shape)
 fun Modifier.cornerRadius(radius: Number): Modifier = this.clipShape(RoundedRectangle(radius.toInt()))
@@ -518,6 +545,26 @@ fun Modifier.toolbarStyle(
         contentPadding = contentPadding
     )
 )
+
+fun Modifier.toolbarStyle(
+    background: GradientColor,
+    foregroundColor: Color? = null,
+    elevation: Dp? = null,
+    contentPadding: Dp? = null
+): Modifier =
+    this
+        .then(
+            ToolbarGradientModifier(background)
+        )
+        .then(
+            ToolbarStyleModifier(
+                background = null, // IMPORTANT
+                foreground = foregroundColor,
+                elevation = elevation,
+                contentPadding = contentPadding
+            )
+        )
+
 
 // Toolbar Layout (must be defined for NavigationAndSheet.kt)
 private data class ToolbarLayoutModifier(val layoutModifier: Modifier) : Modifier.Element
@@ -666,4 +713,20 @@ fun Modifier.placeholderStyle(
     color: Color? = null,
     font: SystemFont? = null
 ): Modifier = this.then(PlaceholderStyleModifier(color, font))
+
+data class ToolbarGradientModifier(
+    val gradient: GradientColor
+) : Modifier.Element
+
+//Changes:
+
+
+
+class GradientColor internal constructor(
+    val colors: List<Color>
+)
+
+// DSL helper
+fun linearGradient(colors: List<Color>): GradientColor =
+    GradientColor(colors)
 

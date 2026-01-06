@@ -27,8 +27,16 @@ val deviceHeight: Dp
 
 //unit:
 
-val unit: Double
-    get() = DriftScale.scaleFactor.toDouble()
-
+// Perceptual (fonts, icons, radius)
 val Number.u: Double
-    get() = this.toDouble() * unit
+    get() = this.toDouble() * DriftScale.visualScale
+
+// Width-based unit
+val Number.wu: Double
+    get() = this.toDouble() * DriftScale.widthScale
+
+// Height-based unit
+val Number.hu: Double
+    get() = this.toDouble() * DriftScale.heightScale
+
+

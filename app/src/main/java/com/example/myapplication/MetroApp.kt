@@ -23,7 +23,7 @@ fun metro(){
         var destination = viewModel.destination
 
 
-        NavigationStack(Modifier.toolbarStyle(backgroundColor = Color.shazan, foregroundColor = Color.white).frame(width = 450, height = 70).navigationBarBackButtonHidden(true).preferredColorScheme(lightMode)) {
+        NavigationStack(Modifier.toolbarStyle(foregroundColor = Color.white).frame(width = 450, height = 70).navigationBarBackButtonHidden(true).preferredColorScheme(lightMode)) {
 
             VStack() {
 
@@ -67,11 +67,34 @@ fun metro(){
 
                 Text("Entered text is: ${source.value}")
                 Text("Entered password is: ${destination.value}")
-            }
-            toolbar(Modifier.frame(width = 450, height = 95)) {
 
-                ToolbarItem(placement = ToolbarPlacement.Leading) {
-                    Text("Route", Modifier.foregroundStyle(Color.white).font(system(size = 22, weight = medium)).padding(top = 40))
+                Rectangle(width =  statusBarWidth.value.toInt() ,
+                    height = statusBarHeight.value.toInt() + 40.u.toInt(), modifier = Modifier.foregroundStyle(linearGradient(listOf(Color.green, Color.blue))))
+            }
+            toolbar(
+                Modifier.frame(
+                    width = statusBarWidth.value,
+                    height = statusBarHeight.value + 40.u
+                )
+            ) {
+                ToolbarItem(ToolbarPlacement.Center) {
+
+                }
+                ZStack(Modifier.padding(top = -statusBarHeight.value*2 - 5.u)) {
+                    Rectangle(width =  statusBarWidth.value.toInt() + 4.u.toInt(),
+                        height = statusBarHeight.value.toInt() + 40.u.toInt(), modifier = Modifier.foregroundStyle(linearGradient(listOf(Color.green, Color.blue))))
+
+
+//                    ToolbarItem(placement = ToolbarPlacement.Leading) {
+//                        Button(action = {
+//                            showMenu.set(true)
+//                        }) {
+//                            Image("menu", Modifier.frame(width = 35.u).padding(top = 35.u))
+//                        }
+//                    }
+//                    ToolbarItem(placement = ToolbarPlacement.Center) {
+//                        Image("removed_logo", Modifier.frame(95.u, 120.u).offset(y = 19.u.toInt()))
+//                    }
                 }
             }
         }

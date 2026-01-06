@@ -52,8 +52,8 @@ fun MyScreen() {
 fun test7(){
     DriftView() {
         val viewModel: MetroViewModel = StateObject()
-        VStack(Modifier.frame(width = deviceWidth.value, height = deviceHeight.value).alignment(alignment = bottomLeading)) {
-            Text("heyyy", Modifier.foregroundStyle(Color.red))
+        VStack(Modifier.frame(width = deviceWidth.value, height = deviceHeight.value).alignment(alignment = center)) {
+            Text("heyyy", Modifier.foregroundStyle(Color.purple))
         }
 
 
