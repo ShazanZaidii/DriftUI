@@ -1,7 +1,7 @@
 <h1>Till now it supports: </h1>
 *NOTE: Do not forget to wrap everything in DriftView{} it acts as an initialiser and manager for other blocks.
 <h2>1. H,V and ZStacks  </h2>
-<h2>2. Paddings Example- Text("hello", Modifier.padding(leading = 20) </br> *****[Note: Paddings can't be negative]******</h2>
+<h2>2. Paddings Example- Text("hello", Modifier.padding(leading = 20) </br>
 <h2>3. Background & Color</h2>
 <h2>4. Shapes, ClipShape - Remember clipShape should be used before giving a background color</h2>
 <h2>5. Frame</h2>
