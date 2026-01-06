@@ -766,14 +766,18 @@ List(items = sortedList) { station ->
 ```
 
 <h1>33. Add Ons:</h1>
-* Device Specific Variables- statusBarHeight & width N deviceHeight & width, -> To access values: statusBarHeight.value, statusBarWidth.value, deviceHeight.value, deviceWidth.value
-* Triangle - Shape, 
-* Darker - color Modifier ->  .background(Color.yellow.darker(0.8f))
-* Rgb, rgba, hex - color formats.
-* useNav and useNavigationAction
-* pushReplacement for navStacks
-* Side Menu
-* .seed in Advanced persistence [We do this to seed the data values so they are ready on app's first launch too "smoothly"] - 
+* Device Specific Variables- statusBarHeight & width N deviceHeight & width, -> To access values: statusBarHeight.value, statusBarWidth.value, deviceHeight.value, deviceWidth.value </br>
+* Triangle - Shape, </br>
+* Darker - color Modifier ->  .background(Color.yellow.darker(0.8f)) </br>
+* Rgb, rgba, hex - color formats. </br>
+* useNav and useNavigationAction </br>
+* pushReplacement for navStacks </br>
+* Side Menu </br>
+* .seed in Advanced persistence [We do this to seed the data values so they are ready on app's first launch too "smoothly"] - </br>
+
+// Inside MainActivity.onCreate before setContent{} </br>
+DriftStorage.initialize(applicationContext)  // Starts SharedPreferences - "Storage" you need this to use Storage variables inside viewModels or classes </br>
+DriftRegistry.initialize(applicationContext) // Starts Advance Persistence Engine (Add this!) </br>
 
 <h2> Push Replacement: [To use when you need to control navigation Stack while being outside of it.. Say from SideMenu ]</h2>
 
@@ -852,9 +856,7 @@ Text("Hello", Modifier.font(system(size = 28.u, weight = medium).foregroundStyle
 
 ```
 
-// Inside MainActivity.onCreate before setContent{}
-DriftStorage.initialize(applicationContext)  // Starts SharedPreferences - "Storage" you need this to use Storage variables inside viewModels or classes
-DriftRegistry.initialize(applicationContext) // Starts Advance Persistence Engine (Add this!) 
+
 
 
 **********</br>
