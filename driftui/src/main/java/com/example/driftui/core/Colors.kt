@@ -1,4 +1,4 @@
-package com.example.driftui
+package com.example.driftui.core
 // This file is Colors.kt
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color

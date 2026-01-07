@@ -1,7 +1,5 @@
-package com.example.driftui
+package com.example.driftui.core
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URL

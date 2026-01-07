@@ -1,4 +1,4 @@
-package com.example.driftui
+package com.example.driftui.core
 //This file is NavigationSheet.kt
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
@@ -29,47 +29,9 @@ import kotlin.math.abs
 import androidx.compose.material3.ExperimentalMaterial3Api
 import android.app.Activity
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Icon
-import androidx.compose.runtime.*
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Icon
-import androidx.compose.runtime.*
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.FastOutSlowInEasing
 // --- CUSTOM IMPORTS ---
-import com.example.driftui.driftColors
-import com.example.driftui.Text
-import com.example.driftui.system
-import com.example.driftui.bold
-import com.example.driftui.semibold
-import com.example.driftui.onTapGesture
-import com.example.driftui.State
-import com.example.driftui.ToolbarStyleModifier
-import com.example.driftui.NavigationTitleModifier
-import com.example.driftui.BackButtonHiddenModifier
-import com.example.driftui.PreferredColorSchemeModifier
-import com.example.driftui.DriftColorScheme
-import com.example.driftui.SheetModifier
 
 
 // ---------------------------
@@ -404,7 +366,7 @@ fun SheetHost(sheetState: SheetState, sheetModifier: SheetModifier?) {
         targetValue = targetFraction,
         animationSpec = tween(
             durationMillis = 300,
-            easing = androidx.compose.animation.core.FastOutSlowInEasing
+            easing = FastOutSlowInEasing
         ),
         label = "sheet_fraction"
     )

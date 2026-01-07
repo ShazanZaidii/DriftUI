@@ -1,4 +1,4 @@
-package com.example.driftui
+package com.example.driftui.core
 
 import android.content.Context
 import android.content.SharedPreferences

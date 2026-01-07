@@ -1,6 +1,7 @@
-package com.example.driftui
+package com.example.driftui.core
 
 import android.Manifest
+import android.R
 import android.app.*
 import android.content.*
 import android.content.pm.PackageManager
@@ -118,7 +119,7 @@ object DriftNotificationEngine {
         val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setContentTitle(cfg.title)
             .setContentText(cfg.body)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(cfg.isOngoing)
             .setAutoCancel(!cfg.isOngoing)

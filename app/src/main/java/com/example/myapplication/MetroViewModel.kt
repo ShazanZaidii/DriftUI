@@ -1,9 +1,11 @@
 package com.example.myapplication
 
-import com.example.driftui.ObservableObject
-import com.example.driftui.Published
-import com.example.driftui.Storage
-import com.example.driftui.*
+import com.example.driftui.core.ObservableObject
+import com.example.driftui.core.Published
+import com.example.driftui.core.Storage
+import com.example.driftui.core.DriftStore
+import com.example.driftui.core.State
+import com.example.driftui.core.readJson
 
 data class User(
     val username: String,

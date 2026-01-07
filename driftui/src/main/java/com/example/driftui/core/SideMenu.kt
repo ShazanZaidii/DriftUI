@@ -1,4 +1,4 @@
-package com.example.driftui
+package com.example.driftui.core
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier

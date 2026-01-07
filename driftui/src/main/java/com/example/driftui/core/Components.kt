@@ -1,4 +1,4 @@
-package com.example.driftui
+package com.example.driftui.core
 //This file is Components.kt
 // --- IMPORTS ---
 
@@ -42,36 +42,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.input.pointer.isPressed
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.Canvas as FoundationCanvas // Use alias for standard Canvas
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.consumePositionChange
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.isOutOfBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.Canvas as FoundationCanvas // Use alias for standard Canvas
-import androidx.compose.ui.input.pointer.consumePositionChange
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.isOutOfBounds
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
-import kotlin.math.max
-import kotlin.math.min
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.foundation.Canvas as FoundationCanvas // Use alias for standard Canvas
-import androidx.compose.ui.input.pointer.consumePositionChange
-import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.max
 import kotlin.math.min
 import androidx.compose.foundation.horizontalScroll
@@ -83,9 +64,11 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.font.FontWeight
 // --- CUSTOM IMPORTS ---
-import com.example.driftui.Path
-import com.example.driftui.State
 
 //-----------------------------------------
 //ALIGNMENT EXTRACTOR:
@@ -142,7 +125,7 @@ fun Rectangle(
     Box(
         modifier = modifier.applyShadowIfNeeded()
             .size(width.dp, height.dp)
-            .clip(androidx.compose.ui.graphics.RectangleShape)
+            .clip(RectangleShape)
             .foundationBackground(fgColor)
     )
 }
@@ -346,7 +329,7 @@ fun Image(
     val customColor = modifier.getForegroundColor()
 
     // 2. Create a ColorFilter if a color was found
-    val colorFilter = customColor?.let { androidx.compose.ui.graphics.ColorFilter.tint(it) }
+    val colorFilter = customColor?.let { ColorFilter.tint(it) }
 
     ComposeImage(
         painter = painterResource(id),
@@ -391,7 +374,7 @@ fun TextField(
 
     // Default to 16.sp if no font modifier is provided
     val fontSize = fontStyle?.size?.sp ?: 16.sp
-    val fontWeight = fontStyle?.weight ?: androidx.compose.ui.text.font.FontWeight.Normal
+    val fontWeight = fontStyle?.weight ?: FontWeight.Normal
 
     // Resolve Final Placeholder Specs
     val finalPhColor = phStyle?.color ?: defaultPhColor
@@ -493,7 +476,7 @@ fun SecureField(
     val defaultPhColor = customColor ?: Color.Gray
 
     val fontSize = fontStyle?.size?.sp ?: 16.sp
-    val fontWeight = fontStyle?.weight ?: androidx.compose.ui.text.font.FontWeight.Normal
+    val fontWeight = fontStyle?.weight ?: FontWeight.Normal
 
     // Resolve Final Placeholder Specs
     val finalPhColor = phStyle?.color ?: defaultPhColor
@@ -943,7 +926,7 @@ fun Canvas(
 
 @Composable
 fun PenTool(
-    path: State<Path>? = null,
+    path: State<com.example.driftui.core.Path>? = null,
     color: Color = Color.Black,
     width: Float = 3f,
     smooth: Boolean = true,
@@ -952,7 +935,7 @@ fun PenTool(
     onDrawEnd: () -> Unit = {}
 ) {
     val lastPointAdded = remember { mutableStateOf(Offset.Zero) }
-    val internal = remember { Path() }
+    val internal = remember { com.example.driftui.core.Path() }
     val actualPath = path?.value ?: internal
 
     Canvas(
@@ -996,7 +979,7 @@ fun PenTool(
         // DRAW EACH STROKE INDIVIDUALLY
         actualPath.strokes.forEach { strokeData ->
             if (strokeData.points.isNotEmpty()) {
-                val composePath = androidx.compose.ui.graphics.Path()
+                val composePath = Path()
                 composePath.moveTo(strokeData.points.first().x, strokeData.points.first().y)
 
                 for (i in 1 until strokeData.points.size) {
@@ -1026,7 +1009,7 @@ enum class EraserType { Line, Area }
 
 @Composable
 fun EraserTool(
-    path: State<Path>,
+    path: State<com.example.driftui.core.Path>,
     type: EraserType = EraserType.Area, // Default, but you can change it
     radius: Float = 30f,
     modifier: Modifier = Modifier,

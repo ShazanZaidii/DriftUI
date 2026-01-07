@@ -261,8 +261,9 @@
 //@Composable
 //fun Spacer(size: Int) = androidx.compose.foundation.layout.Spacer(Modifier.size(size.dp))
 
-package com.example.driftui
+package com.example.driftui.core
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
@@ -275,6 +276,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import kotlin.math.sqrt
 
 
 object DriftScale {
@@ -288,7 +291,7 @@ object DriftScale {
 
     // Perceptual scale (for fonts, icons, radius)
     val visualScale: Float
-        get() = kotlin.math.sqrt(widthScale * heightScale)
+        get() = sqrt(widthScale * heightScale)
 }
 
 
@@ -593,10 +596,10 @@ fun DriftView(
     blockBackgroundAudio: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     DriftRegistry.context = context.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
-    val activity = context as? android.app.Activity
+    val activity = context as? Activity
     DriftGlobals.currentActivity = activity
 
     val config = LocalConfiguration.current
@@ -640,8 +643,8 @@ fun DriftView(
 }
 
 @Composable
-fun ColumnScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+fun ColumnScope.Spacer() = Spacer(Modifier.weight(1f))
 @Composable
-fun RowScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+fun RowScope.Spacer() = Spacer(Modifier.weight(1f))
 @Composable
-fun Spacer(size: Int) = androidx.compose.foundation.layout.Spacer(Modifier.size(size.dp))
+fun Spacer(size: Int) = Spacer(Modifier.size(size.dp))

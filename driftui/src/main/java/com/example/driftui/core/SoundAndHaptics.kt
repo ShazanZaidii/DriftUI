@@ -1,8 +1,7 @@
-package com.example.driftui
+package com.example.driftui.core
 
 import android.animation.ValueAnimator
 import android.content.Context
-import android.content.res.AssetFileDescriptor
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager

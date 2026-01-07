@@ -4,17 +4,11 @@ package com.example.myapplication
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.example.driftui.DriftView
-import com.example.driftui.Notification
-import com.example.driftui.onTapGesture
-import com.example.driftui.*
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.Dp
 import kotlin.math.absoluteValue
-import androidx.compose.ui.unit.times
+import com.example.driftui.core.*
+
+
 @Composable
 fun metro(){
     DriftView() {
@@ -23,7 +17,10 @@ fun metro(){
         var destination = viewModel.destination
 
 
-        NavigationStack(Modifier.toolbarStyle(foregroundColor = Color.white).frame(width = 450, height = 70).navigationBarBackButtonHidden(true).preferredColorScheme(lightMode)) {
+        NavigationStack(
+            Modifier.toolbarStyle(foregroundColor = Color.white).frame(width = 450, height = 70)
+                .navigationBarBackButtonHidden(true).preferredColorScheme(lightMode)
+        ) {
 
             VStack() {
 
@@ -35,7 +32,8 @@ fun metro(){
                             value = source,
                             Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7)
                                 .background(Color.shazan).foregroundStyle(Color.white)
-                                .frame(width= 300, height = 45).offset(x = 10))
+                                .frame(width = 300, height = 45).offset(x = 10)
+                        )
                         Image("magnifyingglass", Modifier.scaleEffect(3).padding(leading = 80))
                     }
 
@@ -45,21 +43,26 @@ fun metro(){
                             value = destination,
                             Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7)
                                 .background(Color.shazan).foregroundStyle(Color.white)
-                                .frame(width= 300, height = 45).offset(x = 10))
+                                .frame(width = 300, height = 45).offset(x = 10)
+                        )
                         Image("magnifyingglass", Modifier.scaleEffect(3).padding(leading = 80))
 
                     }
 
-                    NavigationLink(destination = {dest()} ) {
-                        Rectangle(300, 45, Modifier.padding(top = 125).padding(trailing = 60).opacity(0.0))
+                    NavigationLink(destination = { dest() }) {
+                        Rectangle(
+                            300,
+                            45,
+                            Modifier.padding(top = 125).padding(trailing = 60).opacity(0.0)
+                        )
                     }
-                    NavigationLink(destination = {source()} ) {
+                    NavigationLink(destination = { source() }) {
                         Rectangle(300, 50, Modifier.padding(trailing = 60).opacity(0.0))
                     }
                 }
                 Button(action = {
                     swap(destination, source)
-                }, Modifier.offset(x = 155, y=-130).scaleEffect(0.4)) {
+                }, Modifier.offset(x = 155, y = -130).scaleEffect(0.4)) {
                     Image("img")
 
                 }
@@ -68,8 +71,18 @@ fun metro(){
                 Text("Entered text is: ${source.value}")
                 Text("Entered password is: ${destination.value}")
 
-                Rectangle(width =  statusBarWidth.value.toInt() ,
-                    height = statusBarHeight.value.toInt() + 40.u.toInt(), modifier = Modifier.foregroundStyle(linearGradient(listOf(Color.green, Color.blue))))
+                Rectangle(
+                    width = statusBarWidth.value.toInt(),
+                    height = statusBarHeight.value.toInt() + 40.u.toInt(),
+                    modifier = Modifier.foregroundStyle(
+                        linearGradient(
+                            listOf(
+                                Color.green,
+                                Color.blue
+                            )
+                        )
+                    )
+                )
             }
             toolbar(
                 Modifier.frame(
@@ -80,9 +93,19 @@ fun metro(){
                 ToolbarItem(ToolbarPlacement.Center) {
 
                 }
-                ZStack(Modifier.padding(top = -statusBarHeight.value*2 - 5.u)) {
-                    Rectangle(width =  statusBarWidth.value.toInt() + 4.u.toInt(),
-                        height = statusBarHeight.value.toInt() + 40.u.toInt(), modifier = Modifier.foregroundStyle(linearGradient(listOf(Color.green, Color.blue))))
+                ZStack(Modifier.padding(top = -statusBarHeight.value * 2 - 5.u)) {
+                    Rectangle(
+                        width = statusBarWidth.value.toInt() + 4.u.toInt(),
+                        height = statusBarHeight.value.toInt() + 40.u.toInt(),
+                        modifier = Modifier.foregroundStyle(
+                            linearGradient(
+                                listOf(
+                                    Color.green,
+                                    Color.blue
+                                )
+                            )
+                        )
+                    )
 
 
 //                    ToolbarItem(placement = ToolbarPlacement.Leading) {
@@ -185,8 +208,19 @@ fun source() {
                             )
                         } else {
                             ZStack {
-                                Triangle(36, 36, modifier = Modifier.padding(leading = 8).foregroundStyle(Color.Gray))
-                                Arrow(38, 8, modifier = Modifier.foregroundStyle(color = Color.Black.copy(alpha = 0.3f)).rotationEffect(-45).offset(y = 4))
+                                Triangle(
+                                    36,
+                                    36,
+                                    modifier = Modifier.padding(leading = 8)
+                                        .foregroundStyle(Color.Gray)
+                                )
+                                Arrow(
+                                    38,
+                                    8,
+                                    modifier = Modifier.foregroundStyle(
+                                        color = Color.Black.copy(alpha = 0.3f)
+                                    ).rotationEffect(-45).offset(y = 4)
+                                )
                             }
                         }
 
@@ -226,13 +260,23 @@ fun dest(){
         val viewModel: MetroViewModel = StateObject()
         var destination = viewModel.destination
         val Dismiss = Dismiss()
-        val linewidth = (15*deviceWidth.value)/16
+        val linewidth = (15* deviceWidth.value)/16
 
         VStack() {
             HStack() {
-                TextField(placeholder = "Type to filter station names", value = destination, Modifier.font(system(size = 20)).frame(width = deviceWidth.value, height = 40 ).offset(x=5, y=15) )
+                TextField(
+                    placeholder = "Type to filter station names",
+                    value = destination,
+                    Modifier.font(system(size = 20)).frame(width = deviceWidth.value, height = 40)
+                        .offset(x = 5, y = 15)
+                )
             }
-            Divider(color = Color.blue, thickness = 2, width = linewidth.absoluteValue, modifier = Modifier.padding(trailing = 2))
+            Divider(
+                color = Color.blue,
+                thickness = 2,
+                width = linewidth.absoluteValue,
+                modifier = Modifier.padding(trailing = 2)
+            )
 
 
             List(items = viewModel.sortedList) { station ->
@@ -242,7 +286,10 @@ fun dest(){
                         destination.value = station["name"].string
                         Dismiss()
                     }) {
-                        Text(station["name"].string, Modifier.frame(width = deviceWidth.value, height = 50))
+                        Text(
+                            station["name"].string,
+                            Modifier.frame(width = deviceWidth.value, height = 50)
+                        )
 
                     }
 

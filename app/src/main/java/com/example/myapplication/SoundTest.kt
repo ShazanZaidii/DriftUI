@@ -2,23 +2,47 @@ package com.example.myapplication
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.example.driftui.DriftView
-import com.example.driftui.VStack
-import com.example.driftui.*
+import com.example.driftui.core.DriftView
+import com.example.driftui.core.VStack
+import com.example.driftui.core.Button
+import com.example.driftui.core.Haptic
+import com.example.driftui.core.Text
+import com.example.driftui.core.haptic
+import com.example.driftui.core.padding
+import com.example.driftui.core.playSound
+import com.example.driftui.core.stopAllSounds
+import com.example.driftui.core.stopSound
+import com.example.driftui.core.warning
 
 @Composable
 fun play(){
     DriftView(blockBackgroundAudio = true){
         VStack() {
             Button(action = {
-                playSound(file = "chaloo.mp3", pitch = 1.0, pan = 1.0, panEnd = -1.0,backgroundPlay = false, loop = false, override = true)
+                playSound(
+                    file = "chaloo.mp3",
+                    pitch = 1.0,
+                    pan = 1.0,
+                    panEnd = -1.0,
+                    backgroundPlay = false,
+                    loop = false,
+                    override = true
+                )
 
             }) {
                 Text("Play 1")
             }
             Button(action = {
                 stopSound(file = "chaloo.mp3")
-                playSound(file = "lofi.mp3", pitch = 1.0, speed = 1.2, pan = 1.0, panEnd = -1.0,backgroundPlay = false, loop = true)
+                playSound(
+                    file = "lofi.mp3",
+                    pitch = 1.0,
+                    speed = 1.2,
+                    pan = 1.0,
+                    panEnd = -1.0,
+                    backgroundPlay = false,
+                    loop = true
+                )
 
             }) {
 

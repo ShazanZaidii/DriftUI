@@ -1,8 +1,7 @@
-package com.example.driftui
+package com.example.driftui.core
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path as ComposePath
 import kotlin.math.abs
 
 // 1. New Data Class to hold individual stroke details

@@ -3,7 +3,26 @@ package com.example.myapplication
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.example.driftui.*
+import com.example.driftui.core.Button
+import com.example.driftui.core.DriftView
+import com.example.driftui.core.NavigationStack
+import com.example.driftui.core.State
+import com.example.driftui.core.StateObject
+import com.example.driftui.core.Text
+import com.example.driftui.core.VStack
+import com.example.driftui.core.alignment
+import com.example.driftui.core.bold
+import com.example.driftui.core.center
+import com.example.driftui.core.deviceHeight
+import com.example.driftui.core.deviceWidth
+import com.example.driftui.core.font
+import com.example.driftui.core.foregroundStyle
+import com.example.driftui.core.frame
+import com.example.driftui.core.offset
+import com.example.driftui.core.padding
+import com.example.driftui.core.purple
+import com.example.driftui.core.sheet
+import com.example.driftui.core.system
 
 @Composable
 fun MyScreen() {
@@ -52,10 +71,12 @@ fun MyScreen() {
 fun test7(){
     DriftView() {
         val viewModel: MetroViewModel = StateObject()
-        VStack(Modifier.frame(width = deviceWidth.value, height = deviceHeight.value).alignment(alignment = center)) {
-            Text("heyyy", Modifier.foregroundStyle(Color.purple))
+        VStack(
+            Modifier.frame(width = deviceWidth.value, height = deviceHeight.value)
+                .alignment(alignment = center)
+        ) {
+            Text("heyyy", foregroundStyle(Color.purple))
         }
-
 
 
     }

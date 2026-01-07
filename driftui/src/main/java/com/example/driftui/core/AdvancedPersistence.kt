@@ -1,4 +1,4 @@
-package com.example.driftui
+package com.example.driftui.core
 
 import android.content.ContentValues
 import android.content.Context
@@ -21,6 +21,7 @@ import kotlin.reflect.jvm.isAccessible
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 
 // =============================================================================================
 // OPTIMIZATION: SCHEMA CACHE & IDENTITY REFLECTION
@@ -516,7 +517,7 @@ class DriftDatabaseHelper(context: Context, name: String) :
                         List::class -> {
                             val rawJson = cursor.getString(idx)
                             try {
-                                val jsonArray = org.json.JSONArray(rawJson)
+                                val jsonArray = JSONArray(rawJson)
                                 val list = mutableListOf<String>()
                                 for (j in 0 until jsonArray.length()) { list.add(jsonArray.getString(j)) }
                                 list
@@ -554,7 +555,7 @@ class DriftDatabaseHelper(context: Context, name: String) :
                 is Float -> cv.put(prop.name, value)
                 is Double -> cv.put(prop.name, value)
                 is List<*> -> {
-                    val json = org.json.JSONArray(value).toString()
+                    val json = JSONArray(value).toString()
                     cv.put(prop.name, json)
                 }
                 null -> cv.putNull(prop.name)

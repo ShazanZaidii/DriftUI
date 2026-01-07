@@ -1,10 +1,8 @@
-package com.example.driftui
+package com.example.driftui.core
 //This file is Modifiers.kt
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding as foundationPadding
 import androidx.compose.foundation.background as foundationBackground
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -19,19 +17,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.coroutineScope
-import androidx.compose.ui.draw.shadow // For the shadow implementation
 import androidx.compose.foundation.border // For the border implementation
 import androidx.compose.ui.geometry.Offset
 // --- CUSTOM CLASS IMPORTS (for defining modifier elements) ---
-import com.example.driftui.SheetDetent
-import com.example.driftui.State
-import com.example.driftui.RoundedRectangle
 import androidx.compose.ui.Alignment
 
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.unit.offset
-
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.offset
 
@@ -40,7 +31,6 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 

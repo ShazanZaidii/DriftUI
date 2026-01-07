@@ -1,4 +1,4 @@
-package com.example.driftui
+package com.example.driftui.core
 //This file is StateAndData.kt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -12,13 +12,15 @@ import kotlin.reflect.KProperty
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
-import android.os.Build
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.os.Environment
 import android.provider.MediaStore
+import android.widget.Toast
 // Removed RequiresApi import
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.platform.LocalContext
 import java.util.UUID
 
 
@@ -114,13 +116,13 @@ fun <T> swap(a: MutableState<T>, b: MutableState<T>) {
 fun savePathToGallery(context: Context, path: Path, width: Int, height: Int): Boolean {
     try {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(bitmap)
+        val canvas = Canvas(bitmap)
         canvas.drawColor(android.graphics.Color.WHITE)
 
-        val paint = android.graphics.Paint().apply {
-            style = android.graphics.Paint.Style.STROKE
-            strokeCap = android.graphics.Paint.Cap.ROUND
-            strokeJoin = android.graphics.Paint.Join.ROUND
+        val paint = Paint().apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
             isAntiAlias = true
         }
 
@@ -176,7 +178,7 @@ fun savePathToGallery(context: Context, path: Path, width: Int, height: Int): Bo
 @Composable
 fun DrawController(): DriftDrawController {
     // We capture the Context here so the developer doesn't have to
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     return remember { DriftDrawController(context) }
 }
 
@@ -224,7 +226,7 @@ class DriftDrawController(private val context: Context) {
     fun save() {
         val success = savePathToGallery(context, path.value, 1080, 1920)
         val msg = if (success) "Saved to Gallery!" else "Failed to save."
-        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
     }
 
     fun toggleEraser() {

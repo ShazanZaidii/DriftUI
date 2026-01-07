@@ -1,4 +1,4 @@
-package com.example.driftui
+package com.example.driftui.core
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.statusBars

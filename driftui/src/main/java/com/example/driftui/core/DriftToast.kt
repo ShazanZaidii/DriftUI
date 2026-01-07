@@ -145,7 +145,7 @@
 //}
 
 
-package com.example.driftui
+package com.example.driftui.core
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
