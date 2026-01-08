@@ -7,22 +7,22 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 
-class FirebaseStore<T : Any> private constructor(
+class FirebaseStore<T : Any>(
     private val collection: String,
     private val model: KClass<T>
 ) {
 
-    companion object {
-        @Composable
-        operator fun <T : Any> invoke(
-            collection: String,
-            model: KClass<T>
-        ): FirebaseStore<T> {
-            return remember(collection) {
-                FirebaseStore(collection, model)
-            }
-        }
-    }
+//    companion object {
+//        @Composable
+//        operator fun <T : Any> invoke(
+//            collection: String,
+//            model: KClass<T>
+//        ): FirebaseStore<T> {
+//            return remember(collection) {
+//                FirebaseStore(collection, model)
+//            }
+//        }
+//    }
 
     private val firestore = FirebaseFirestore.getInstance()
     private val collectionRef = firestore.collection(collection)
