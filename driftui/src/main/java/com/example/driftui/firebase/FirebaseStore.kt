@@ -1,5 +1,7 @@
 package com.example.driftui.firebase
 
+//This file is FierbaseStore.kt
+
 import androidx.compose.runtime.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
