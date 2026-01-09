@@ -900,18 +900,64 @@ fun Slider(
     )
 }
 
+//ScrollView::
+
+enum class ScrollDirection {
+    Vertical,
+    Horizontal
+}
+
+//class OnTop(val action: () -> Unit)
+//class OnScroll(val action: () -> Unit)
+//
+//fun onTop(action: () -> Unit) = OnTop(action)
+//fun onScroll(action: () -> Unit) = OnScroll(action)
+
+
 @Composable
 fun ScrollView(
     modifier: Modifier = Modifier,
+    direction: ScrollDirection = ScrollDirection.Vertical,
+    onTop: (() -> Unit)? = null,
+    onScroll: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val scrollState = rememberScrollState()
+    var wasAtTop by remember { mutableStateOf(true) }
+
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.value }
+            .collect { offset ->
+                val isAtTop = offset == 0
+
+                if (isAtTop && !wasAtTop) {
+                    wasAtTop = true
+                    onTop?.invoke()
+                }
+
+                if (!isAtTop && wasAtTop) {
+                    wasAtTop = false
+                    onScroll?.invoke()
+                }
+            }
+    }
+
+    val scrollModifier = when (direction) {
+        ScrollDirection.Vertical -> Modifier.verticalScroll(scrollState)
+        ScrollDirection.Horizontal -> Modifier.horizontalScroll(scrollState)
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .then(scrollModifier),
         content = content
     )
 }
+
+
+
+
 
 @Composable
 fun Canvas(

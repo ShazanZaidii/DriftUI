@@ -40,3 +40,8 @@ val Number.hu: Double
     get() = this.toDouble() * DriftScale.heightScale
 
 
+val xMAx = 170.wu.toInt()
+val xMin = -170.wu.toInt()
+val yMax = -370.hu.toInt()
+val yMin = 370.hu.toInt()
+
