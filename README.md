@@ -856,9 +856,151 @@ Text("Hello", Modifier.font(system(size = 28.u, weight = medium).foregroundStyle
 
 ```
 
+<h1> 35. ScrollView (now supports - onTop & onScroll parameters) </h1>
+<h3> Use onTop to do something when user hasnt scrolled yet Like showing a floating button in the bottom end corner & onScroll to do any task when user has scrolled (this is computed only once, but i am actively thinking of adding onContinuousScroll too to do something as long as user is scrolling.)</h3>
+
+Code:
+
+```
+ ScrollView(modifier = Modifier.background(Color.white), onTop = {isAtTop.set(true)}, onScroll = {isAtTop.set(false)}
+
+                ) {
+                    VStack(
+                        spacing = 20,
+                        modifier = Modifier
+                            .frame(
+                                width = (deviceWidth.value),
+                                height = (deviceHeight.value + 100.hu )
+                            )
+                            .alignment(Alignment.Center).padding(top = -45.hu)
+                    ) {
+//                        Divider(color = Color.red, width = 500, modifier = Modifier.padding(top = -70))
 
 
+                        // ================= LEADS TAB =================
+                        ZStack {
+                            RoundedRectangle(
+                                (deviceWidth.value) - 10.wu,
+                                140.hu,
+                                cornerRadius = 12.u,
+                                Modifier.foregroundStyle(Color.white)
+                                    .shadow(Color.gray, 46.u, 6.u, cornerRadius = 128).border(color = Color.black.copy(alpha = 0.2f), width = 1.u, cornerRadius = 16)
+                            )
 
+                            Text(
+                                "Leads",
+                                Modifier.font(system(22.u, bold))
+                                    .foregroundStyle(Color.black.copy(alpha = 0.67f))
+                                    .padding(top = -100.hu, leading = -285.wu)
+                            )
+
+                            HStack(
+                                spacing = 10.wu.toInt(),
+                                modifier = Modifier
+                                    .frame(
+                                        width = (deviceWidth.value * 1).wu - 30.wu,
+                                        height = 140.hu
+                                    )
+                                    .alignment(Alignment.Center)
+                                    .padding(top = 29.hu)
+                            ) {
+                                VStack(Modifier.frame(width = 80.wu).padding(top = 1.hu)) {
+                                    Image("leads_img", Modifier.frame(width = 55.wu))
+                                    Text("Qualified")
+                                }
+                               
+                            }
+                        }
+}
+
+```
+<h1> 36. +FIREBASE Direct Support! [Supports CRUD operations for now in DB with? 99% DriftStore like syntax!! except you have to use copy keyword before editing something.]</h1>
+
+```
+data class Account(
+    val id: String,
+    val role: String
+)
+
+@Composable
+fun FirebaseStoreTest() {
+    var tap = 1
+    // Firebase-backed store
+    val accounts = FirebaseStore("accounts_test", Account::class)
+    accounts.Bind()
+
+
+    DriftView {
+
+        VStack(spacing = 20.u.toInt()) {
+
+            Text("FirebaseStore Test", Modifier.font(system(62, bold)))
+
+            Button(action = {
+
+                // Idempotent seed
+                accounts.seed(
+                    Account("root", "admin"),
+                    Account("guest", "viewer")
+                ) {
+                    it.id
+                }
+
+            }) {
+                Text("Seed Accounts")
+            }
+
+            Button(action = {
+                accounts.add(Account("alice", "editor"))
+            }) {
+                Text("Add Alice")
+            }
+
+            Button(action = {
+
+                tap++
+
+                val guest = accounts.items.find { it.id == "guest" }
+                if(tap%2 == 0){
+
+                    accounts.edit(guest) {
+                        copy(role = "viewer")
+                    }
+                }
+                else {
+                    accounts.edit(guest) {
+                        copy(role = "shazan")
+                    }
+                }
+            }) {
+                Text("Edit Guest")
+            }
+
+            Button(action = {
+                accounts.removeBy(Account::id, "alice")
+            }) {
+                Text("Remove Alice")
+            }
+
+            Divider()
+
+            // Reactive view
+            VStack {
+                Text("Accounts in DB:", Modifier.font(system(18.u, medium)))
+
+                accounts.items.forEach {
+                    Text("${it.id} → ${it.role}")
+                }
+            }
+        }
+    }
+}
+
+
+```
+
+<h1> 37. xMax, xMin, yMax and yMin:</h1>
+    <h3> Use these variables with offset to "align" items relatively to the screen, Don't worry your UI will look the same on all screens because in the backend these variabels are computed based onn the device being used, be it a foldable, a tab, a flip phone or whatever. For example "Modifier.offset(y = yMax)" pushes the view it is applied on to Top-Center and "Modifier.offset(x = xMax)" shifts the view to far right.  </h3>
 **********</br>
 Steps to Use DriftUI:
 1. Create a new Module of type Android Library
