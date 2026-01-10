@@ -1001,6 +1001,65 @@ fun FirebaseStoreTest() {
 
 <h1> 37. xMax, xMin, yMax and yMin:</h1>
     <h3> Use these variables with offset to "align" items relatively to the screen, Don't worry your UI will look the same on all screens because in the backend these variabels are computed based onn the device being used, be it a foldable, a tab, a flip phone or whatever. For example "Modifier.offset(y = yMax)" pushes the view it is applied on to Top-Center and "Modifier.offset(x = xMax)" shifts the view to far right.  </h3>
+   
+<h1> 38. Gauges (LinearGauge, CircularGauge, AccessoryGauge):</h1>
+    <h3> They support the parameters:
+    value, range, radius, thickness, fillColor, tracker . 
+    To adjust size use frame around it (for example if you need to adjust length of LinearGauge.)  </h3>
+<h2>CODE EXAMPLE: [AccessoryCircularGauge] </h2>
+```
+AccessoryCircularGauge(
+                                value = 20,
+                                range = 0..40,
+                                radius = 33.8.u,
+                                thickness = 7.u,
+
+                                // Very light track
+                                trackColor = gaugeColor(
+                                    Color.white.copy(alpha = 0.80f)
+                                ),
+                                fillColor = gaugeColor(
+                                    linearGradient(
+                                        listOf(
+                                            hex("6A89A7"),
+                                            hex("88BDF2")
+                                        )
+                                    )
+                                ),
+                                tracker = {
+
+                                    Circle(
+                                        3,
+                                        Modifier.foregroundStyle(
+                                            Color.white.copy(alpha = 0.9f)
+                                        )
+                                    )
+//
+                                },
+                                // Calm single-direction gradient
+
+
+                            ) {
+                                VStack {
+
+                                    Text(
+                                        "20",
+                                        Modifier
+                                            .font(system(30.u, bold))
+                                            .foregroundStyle(Color.white)
+                                            .offset(y = 8.hu.toInt())
+                                    )
+
+                                    Image(
+                                        "flame_fill2",
+                                        Modifier
+                                            .frame(13.wu, 13.hu)
+                                            .offset(y = 10.9.hu.toInt())
+                                    )
+                                }
+                            }
+``` 
+   
 **********</br>
 Steps to Use DriftUI:
 1. Create a new Module of type Android Library

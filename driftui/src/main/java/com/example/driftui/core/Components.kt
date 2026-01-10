@@ -1,7 +1,10 @@
 package com.example.driftui.core
 //This file is Components.kt
 // --- IMPORTS ---
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 
+import android.R.attr.radius
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -41,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -64,10 +68,18 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
+
 // --- CUSTOM IMPORTS ---
 
 //-----------------------------------------
@@ -1139,7 +1151,328 @@ private fun clampOffset(offset: Offset, size: IntSize): Offset {
     return Offset(clampedX, clampedY)
 }
 
-// Add to Components.kt
+// =================================================================================================
+// GAUGES – FINAL IMPLEMENTATION
+// =================================================================================================
+
+/* ---------- NORMALIZATION ---------- */
+
+// Double range
+private fun normalize(
+    value: Number,
+    range: ClosedFloatingPointRange<Double>
+): Float {
+    val min = range.start
+    val max = range.endInclusive
+    val v = value.toDouble()
+
+    if (max <= min) return 0f
+    return ((v - min) / (max - min))
+        .coerceIn(0.0, 1.0)
+        .toFloat()
+}
+
+// Int range
+private fun normalize(
+    value: Number,
+    range: IntRange
+): Float {
+    val min = range.first.toDouble()
+    val max = range.last.toDouble()
+    val v = value.toDouble()
+
+    if (max <= min) return 0f
+    return ((v - min) / (max - min))
+        .coerceIn(0.0, 1.0)
+        .toFloat()
+}
+
+/* ---------- NUMBER → DP ADAPTER ---------- */
+
+@Composable
+private fun Number.toDp(): Dp =
+    with(LocalDensity.current) { this@toDp.toFloat().dp }
+
+/* ---------- GAUGE COLOR (USER-FACING) ---------- */
+
+sealed interface GaugeColor {
+    data class Solid(val color: Color) : GaugeColor
+    data class Gradient(val gradient: GradientColor) : GaugeColor
+}
+
+fun gaugeColor(color: Color): GaugeColor =
+    GaugeColor.Solid(color)
+
+fun gaugeColor(gradient: GradientColor): GaugeColor =
+    GaugeColor.Gradient(gradient)
+
+/* ---------- GRADIENT → BRUSH ADAPTER ---------- */
+
+private fun GradientColor.toBrush(): Brush =
+    Brush.linearGradient(this.colors)
+
+/* ---------- INTERNAL HELPERS ---------- */
+
+private fun GaugeColor.toBrush(): Brush =
+    when (this) {
+        is GaugeColor.Solid -> SolidColor(color)
+        is GaugeColor.Gradient -> gradient.toBrush()
+    }
+
+/* ---------- INTERNAL CIRCULAR RENDERER ---------- */
+
+@Composable
+private fun RenderCircularGauge(
+    progress: Float,
+    modifier: Modifier,
+    radius: Dp,
+    thickness: Dp,
+    startAngle: Float,
+    sweepAngle: Float,
+    trackColor: GaugeColor,
+    fillColor: GaugeColor,
+    tracker: (@Composable () -> Unit)?,
+    content: (@Composable () -> Unit)?
+) {
+    val size = radius * 2
+    val angle = startAngle + sweepAngle * progress
+
+    val strokePx: Float
+    val radiusPx: Float
+
+    with(LocalDensity.current) {
+        strokePx = thickness.toPx()
+        radiusPx = radius.toPx()
+    }
+
+    val trackBrush = trackColor.toBrush()
+    val fillBrush = fillColor.toBrush()
+
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = Stroke(
+                width = strokePx,
+                cap = StrokeCap.Round
+            )
+
+            drawArc(
+                brush = trackBrush,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                style = stroke
+            )
+
+            drawArc(
+                brush = fillBrush,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle * progress,
+                useCenter = false,
+                style = stroke
+            )
+        }
+
+        if (tracker != null) {
+            val rad = Math.toRadians(angle.toDouble())
+            val x = cos(rad).toFloat() * radiusPx
+            val y = sin(rad).toFloat() * radiusPx
+
+            Box(
+                Modifier.offset {
+                    IntOffset(x.roundToInt(), y.roundToInt())
+                }
+            ) {
+                tracker()
+            }
+        }
+
+        content?.invoke()
+    }
+}
+
+/* =================================================================================================
+   PUBLIC API – USERS CALL ONLY THESE
+   ================================================================================================= */
+
+/* ---------- LINEAR GAUGE ---------- */
+
+// Double range
+@Composable
+fun LinearGauge(
+    value: Number,
+    range: ClosedFloatingPointRange<Double> = 0.0..1.0,
+    modifier: Modifier = Modifier,
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red)
+) {
+    val progress = normalize(value, range)
+    val thicknessDp = thickness.toDp()
+
+    Box(
+        modifier
+            .height(thicknessDp)
+            .background(trackColor.toBrush(), RoundedCornerShape(thicknessDp / 2))
+    ) {
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(progress)
+                .background(fillColor.toBrush(), RoundedCornerShape(thicknessDp / 2))
+        )
+    }
+}
+
+// Int range
+@Composable
+fun LinearGauge(
+    value: Number,
+    range: IntRange,
+    modifier: Modifier = Modifier,
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red)
+) {
+    val progress = normalize(value, range)
+    val thicknessDp = thickness.toDp()
+
+    Box(
+        modifier
+            .height(thicknessDp)
+            .background(trackColor.toBrush(), RoundedCornerShape(thicknessDp / 2))
+    ) {
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(progress)
+                .background(fillColor.toBrush(), RoundedCornerShape(thicknessDp / 2))
+        )
+    }
+}
+
+/* ---------- CIRCULAR GAUGE ---------- */
+
+@Composable
+fun CircularGauge(
+    value: Number,
+    range: ClosedFloatingPointRange<Double> = 0.0..1.0,
+    modifier: Modifier = Modifier,
+    radius: Number = 44,
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    content: (@Composable () -> Unit)? = null
+) {
+    val progress = normalize(value, range)
+
+    RenderCircularGauge(
+        progress,
+        modifier,
+        radius.toDp(),
+        thickness.toDp(),
+        -90f,
+        360f,
+        trackColor,
+        fillColor,
+        null,
+        content
+    )
+}
+
+@Composable
+fun CircularGauge(
+    value: Number,
+    range: IntRange,
+    modifier: Modifier = Modifier,
+    radius: Number = 44,
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    content: (@Composable () -> Unit)? = null
+) {
+    val progress = normalize(value, range)
+
+    RenderCircularGauge(
+        progress,
+        modifier,
+        radius.toDp(),
+        thickness.toDp(),
+        -90f,
+        360f,
+        trackColor,
+        fillColor,
+        null,
+        content
+    )
+}
+
+/* ---------- ACCESSORY CIRCULAR GAUGE ---------- */
+
+@Composable
+fun AccessoryCircularGauge(
+    value: Number,
+    range: ClosedFloatingPointRange<Double> = 0.0..1.0,
+    modifier: Modifier = Modifier,
+    radius: Number = 44,
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    tracker: (@Composable () -> Unit)? = null,
+    content: (@Composable () -> Unit)? = null
+) {
+    val progress = normalize(value, range)
+
+    RenderCircularGauge(
+        progress,
+        modifier,
+        radius.toDp(),
+        thickness.toDp(),
+        135f,
+        270f,
+        trackColor,
+        fillColor,
+        tracker,
+        content
+    )
+}
+
+@Composable
+fun AccessoryCircularGauge(
+    value: Number,
+    range: IntRange,
+    modifier: Modifier = Modifier,
+    radius: Number = 44,
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    tracker: (@Composable () -> Unit)? = null,
+    content: (@Composable () -> Unit)? = null
+) {
+    val progress = normalize(value, range)
+
+    RenderCircularGauge(
+        progress,
+        modifier,
+        radius.toDp(),
+        thickness.toDp(),
+        135f,
+        270f,
+        trackColor,
+        fillColor,
+        tracker,
+        content
+    )
+}
+
+
+
+
+
+/////////////////////////////////////////
 
 @Composable
 fun ColorPicker(
@@ -1173,7 +1506,7 @@ fun ColorPicker(
     }
 }
 
-// ... (Your existing PenTool, EraserTool, etc.) ...
+// ... ...
 
 /**
  * The Magic Wrapper.
@@ -1286,3 +1619,355 @@ fun hex(hexString: String): Color {
         Color.Black
     }
 }
+
+
+//Gauges:
+
+
+
+//@Composable
+//fun LinearGauge(
+//    value: Number,
+//    range: IntRange = 0..100,
+//    modifier: Modifier = Modifier,
+//
+//    size: Number? = null,
+//    thickness: Number = 6.u,
+//
+//    currentValueLabel: (@Composable () -> Unit)? = null,
+//    minimumValueLabel: (@Composable () -> Unit)? = null,
+//    maximumValueLabel: (@Composable () -> Unit)? = null
+//)
+//
+//{
+//    val progress = normalizedValue(value, range)
+//
+//    val labels = GaugeLabels(
+//        currentValueLabel,
+//        minimumValueLabel,
+//        maximumValueLabel
+//    )
+//
+//    VStack(modifier) {
+//
+//        if (labels.current != null) {
+//            labels.current()
+//        }
+//
+//        Box(
+//            Modifier
+//                .then(if (size != null) Modifier.width(size.toFloat().dp) else Modifier.fillMaxWidth())
+//                .height(thickness.toFloat().dp)
+//                .background(
+//                    driftColors.fieldBackground,
+//                    RoundedCornerShape(thickness.toFloat().dp)
+//                )
+//        ) {
+//            Box(
+//                Modifier
+//                    .fillMaxHeight()
+//                    .fillMaxWidth(progress)
+//                    .background(
+//                        driftColors.accent,
+//                        RoundedCornerShape(thickness.toFloat().dp)
+//                    )
+//            )
+//        }
+//
+//        if (labels.min != null || labels.max != null) {
+//            HStack(Modifier.fillMaxWidth()) {
+//                labels.min?.invoke()
+//                Spacer()
+//                labels.max?.invoke()
+//            }
+//        }
+//    }
+//}
+//
+//
+//
+//@Composable
+//fun CircularGauge(
+//    value: Number,
+//    range: IntRange = 0..100,
+//    modifier: Modifier = Modifier,
+//
+//    radius: Number = 44.u,
+//    strokeWidth: Number = 6.u,
+//
+//    currentValueLabel: (@Composable () -> Unit)? = null,
+//    minimumValueLabel: (@Composable () -> Unit)? = null,
+//    maximumValueLabel: (@Composable () -> Unit)? = null
+//)
+//{
+//    val progress = normalizedValue(value, range)
+//    val size = radius.toFloat() * 2
+//
+//    Box(
+//        modifier = modifier.size(size.dp),
+//        contentAlignment = Alignment.Center
+//    ) {
+//        val trackColor = driftColors.fieldBackground
+//        val fillColor = driftColors.accent
+//
+//
+//        Canvas(Modifier.fillMaxSize()) {
+//            val stroke = Stroke(
+//                width = strokeWidth.toFloat(),
+//                cap = StrokeCap.Round
+//            )
+//
+//            drawArc(
+//                color = trackColor,
+//                startAngle = -90f,
+//                sweepAngle = 360f,
+//                useCenter = false,
+//                style = stroke
+//            )
+//
+//            drawArc(
+//                color = fillColor,
+//                startAngle = -90f,
+//                sweepAngle = 360f * progress,
+//                useCenter = false,
+//                style = stroke
+//            )
+//        }
+//
+//        if (currentValueLabel != null) {
+//            currentValueLabel()
+//        }
+//    }
+//
+//    if (minimumValueLabel != null || maximumValueLabel != null) {
+//        HStack(modifier) {
+//            minimumValueLabel?.invoke()
+//            Spacer()
+//            maximumValueLabel?.invoke()
+//        }
+//    }
+//}
+//
+//@Composable
+//fun AccessoryCircularGauge(
+//    value: Number,
+//    range: IntRange = 0..100,
+//    modifier: Modifier = Modifier,
+//
+//    radius: Number = 18.u,
+//    strokeWidth: Number = 4.u,
+//
+//    icon: (@Composable () -> Unit)? = null
+//)
+//{
+//    val progress = normalizedValue(value, range)
+//    val size = radius.toFloat() * 2
+//
+//    Box(
+//        modifier = modifier.size(size.dp),
+//        contentAlignment = Alignment.Center
+//    ) {
+//        val trackColor = driftColors.fieldBackground.copy(alpha = 0.4f)
+//        val fillColor = driftColors.accent
+//
+//
+//        Canvas(Modifier.fillMaxSize()) {
+//            val stroke = Stroke(
+//                width = strokeWidth.toFloat(),
+//                cap = StrokeCap.Round
+//            )
+//
+//            drawArc(
+//                color = trackColor,
+//                startAngle = -90f,
+//                sweepAngle = 360f,
+//                useCenter = false,
+//                style = stroke
+//            )
+//
+//            drawArc(
+//                color = fillColor,
+//                startAngle = -90f,
+//                sweepAngle = 360f * progress,
+//                useCenter = false,
+//                style = stroke
+//            )
+//        }
+//
+//        icon?.invoke()
+//    }
+//}
+//
+//
+//
+////Gauge overload for supporting double data type in range:
+//
+//@Composable
+//fun LinearGauge(
+//    value: Number,
+//    range: ClosedFloatingPointRange<Double>,
+//    modifier: Modifier = Modifier,
+//
+//    size: Number? = null,
+//    thickness: Number = 6.u,
+//
+//    currentValueLabel: (@Composable () -> Unit)? = null,
+//    minimumValueLabel: (@Composable () -> Unit)? = null,
+//    maximumValueLabel: (@Composable () -> Unit)? = null
+//){
+//    val progress = normalizedValue(value, range)
+//
+//    val labels = GaugeLabels(
+//        currentValueLabel,
+//        minimumValueLabel,
+//        maximumValueLabel
+//    )
+//
+//    VStack(modifier) {
+//
+//        if (labels.current != null) {
+//            labels.current()
+//        }
+//
+//        Box(
+//            Modifier
+//                .then(if (size != null) Modifier.width(size.toFloat().dp) else Modifier.fillMaxWidth())
+//                .height(thickness.toFloat().dp)
+//                .background(
+//                    driftColors.fieldBackground,
+//                    RoundedCornerShape(thickness.toFloat().dp)
+//                )
+//        ) {
+//            Box(
+//                Modifier
+//                    .fillMaxHeight()
+//                    .fillMaxWidth(progress)
+//                    .background(
+//                        driftColors.accent,
+//                        RoundedCornerShape(thickness.toFloat().dp)
+//                    )
+//            )
+//        }
+//
+//        if (labels.min != null || labels.max != null) {
+//            HStack(Modifier.fillMaxWidth()) {
+//                labels.min?.invoke()
+//                Spacer()
+//                labels.max?.invoke()
+//            }
+//        }
+//    }
+//}
+//
+//
+//
+//@Composable
+//fun CircularGauge(
+//    value: Number,
+//    range: ClosedFloatingPointRange<Double>,
+//    modifier: Modifier = Modifier,
+//
+//    radius: Number = 44.u,
+//    strokeWidth: Number = 6.u,
+//
+//    currentValueLabel: (@Composable () -> Unit)? = null,
+//    minimumValueLabel: (@Composable () -> Unit)? = null,
+//    maximumValueLabel: (@Composable () -> Unit)? = null
+//)
+//{
+//    val progress = normalizedValue(value, range)
+//    val size = radius.toFloat() * 2
+//
+//    Box(
+//        modifier = modifier.size(size.dp),
+//        contentAlignment = Alignment.Center
+//    ) {
+//        val trackColor = driftColors.fieldBackground
+//        val fillColor = driftColors.accent
+//
+//        Canvas(Modifier.fillMaxSize()) {
+//            val stroke = Stroke(
+//                width = strokeWidth.toFloat(),
+//                cap = StrokeCap.Round
+//            )
+//
+//            drawArc(
+//                color = trackColor,
+//                startAngle = -90f,
+//                sweepAngle = 360f,
+//                useCenter = false,
+//                style = stroke
+//            )
+//
+//            drawArc(
+//                color = fillColor,
+//                startAngle = -90f,
+//                sweepAngle = 360f * progress,
+//                useCenter = false,
+//                style = stroke
+//            )
+//        }
+//
+//        if (currentValueLabel != null) {
+//            currentValueLabel()
+//        }
+//    }
+//
+//    if (minimumValueLabel != null || maximumValueLabel != null) {
+//        HStack(modifier) {
+//            minimumValueLabel?.invoke()
+//            Spacer()
+//            maximumValueLabel?.invoke()
+//        }
+//    }
+//}
+//
+//@Composable
+//fun AccessoryCircularGauge(
+//    value: Number,
+//    range: ClosedFloatingPointRange<Double>,
+//    modifier: Modifier = Modifier,
+//
+//    radius: Number = 18.u,
+//    strokeWidth: Number = 4.u,
+//
+//    icon: (@Composable () -> Unit)? = null
+//)
+//{
+//    val progress = normalizedValue(value, range)
+//    val size = radius.toFloat() * 2
+//
+//    Box(
+//        modifier = modifier.size(size.dp),
+//        contentAlignment = Alignment.Center
+//    ) {
+//
+//        val trackColor = driftColors.fieldBackground.copy(alpha = 0.4f)
+//        val fillColor = driftColors.accent
+//
+//        Canvas(Modifier.fillMaxSize()) {
+//            val stroke = Stroke(
+//                width = strokeWidth.toFloat(),
+//                cap = StrokeCap.Round
+//            )
+//
+//            drawArc(
+//                color = trackColor,
+//                startAngle = -90f,
+//                sweepAngle = 360f,
+//                useCenter = false,
+//                style = stroke
+//            )
+//
+//            drawArc(
+//                color = fillColor,
+//                startAngle = -90f,
+//                sweepAngle = 360f * progress,
+//                useCenter = false,
+//                style = stroke
+//            )
+//        }
+//
+//        icon?.invoke()
+//    }
+//}
