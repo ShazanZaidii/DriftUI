@@ -259,7 +259,7 @@ fun Arrow(
 }
 
 // --- FOUR POINT STAR (SPARKLE) SHAPE ---
-val FourPointStarShape = GenericShape { size, _ ->
+val FourPointStar = GenericShape { size, _ ->
     val w = size.width
     val h = size.height
     val cx = w / 2f
@@ -294,12 +294,12 @@ fun FourPointStar(
     Box(
         modifier = modifier.applyShadowIfNeeded()
             .size(width.toFloat().dp, height.toFloat().dp)
-            .clip(FourPointStarShape)
+            .clip(FourPointStar)
             .foundationBackground(fgColor)
     )
 }
 
-fun FourPointStar(): Shape = FourPointStarShape
+fun FourPointStar(): Shape = FourPointStar
 
 // --- SHAPE HELPER ---
 

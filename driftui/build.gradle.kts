@@ -79,7 +79,7 @@ afterEvaluate {
 
                 groupId = "com.example"
                 artifactId = "driftui"
-                version = "0.1.77"
+                version = "0.1.78"
             }
         }
     }
