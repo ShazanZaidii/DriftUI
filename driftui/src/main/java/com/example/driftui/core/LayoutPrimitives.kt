@@ -1,266 +1,3 @@
-//package com.example.driftui
-//
-//import androidx.compose.foundation.background
-//import androidx.compose.foundation.layout.*
-//import androidx.compose.runtime.Composable
-//import androidx.compose.ui.Alignment
-//import androidx.compose.ui.Modifier
-//import androidx.compose.ui.unit.dp
-//import androidx.lifecycle.Lifecycle
-//import androidx.lifecycle.LifecycleEventObserver
-//import androidx.lifecycle.compose.LocalLifecycleOwner
-//import androidx.compose.runtime.DisposableEffect
-//import androidx.compose.runtime.LaunchedEffect
-//
-//// ---------------------------------------------------------------------------------------------
-//// GLOBAL ALIGNMENT VARIABLES (For easy access like 'top', 'leading')
-//// ---------------------------------------------------------------------------------------------
-//
-//val top: Alignment = Alignment.TopCenter
-//val bottom: Alignment = Alignment.BottomCenter
-//val center: Alignment = Alignment.Center
-//val leading: Alignment = Alignment.CenterStart
-//val trailing: Alignment = Alignment.CenterEnd
-//val topLeading: Alignment = Alignment.TopStart
-//val topTrailing: Alignment = Alignment.TopEnd
-//val bottomLeading: Alignment = Alignment.BottomStart
-//val bottomTrailing: Alignment = Alignment.BottomEnd
-//
-//// ---------------------------------------------------------------------------------------------
-//// SMART VSTACK & HSTACK
-//// ---------------------------------------------------------------------------------------------
-//
-///**
-// * VStack now supports:
-// * 1. Horizontal Alignment (Cross Axis): .leading, .trailing, .centerH
-// * 2. Vertical Alignment (Main Axis): .top, .bottom, .centerV
-// * 3. 2D Alignment: .topLeading, .bottomTrailing (Configures BOTH axes)
-// */
-//
-//// 1. ORIGINAL (Horizontal Only - Default)
-//@Composable
-//fun VStack(
-//    alignment: Alignment.Horizontal = Alignment.CenterHorizontally,
-//    spacing: Int = 0,
-//    modifier: Modifier = Modifier,
-//    content: @Composable ColumnScope.() -> Unit
-//) {
-//    Column(
-//        modifier = modifier.fillMaxWidth(),
-//        horizontalAlignment = alignment,
-//        verticalArrangement = Arrangement.spacedBy(spacing.dp),
-//        content = content
-//    )
-//}
-//
-//// 2. NEW: VERTICAL OVERLOAD (Handles .top, .bottom - Main Axis)
-//@Composable
-//fun VStack(
-//    alignment: Alignment.Vertical,
-//    spacing: Int = 0,
-//    modifier: Modifier = Modifier,
-//    content: @Composable ColumnScope.() -> Unit
-//) {
-//    // Maps Alignment.Top -> Arrangement.Top, etc.
-//    Column(
-//        modifier = modifier.fillMaxWidth(),
-//        horizontalAlignment = Alignment.CenterHorizontally, // Default
-//        verticalArrangement = Arrangement.spacedBy(spacing.dp, alignment),
-//        content = content
-//    )
-//}
-//
-//// 3. NEW: 2D ALIGNMENT OVERLOAD (Handles .topLeading, .center, etc.)
-//// This is the smartest one: it extracts both vertical and horizontal rules.
-//@Composable
-//fun VStack(
-//    alignment: Alignment,
-//    spacing: Int = 0,
-//    modifier: Modifier = Modifier,
-//    content: @Composable ColumnScope.() -> Unit
-//) {
-//    val (vertArrangement, horizAlign) = alignment.toColumnRules()
-//
-//    Column(
-//        modifier = modifier.fillMaxWidth(),
-//        horizontalAlignment = horizAlign,
-//        verticalArrangement = if (vertArrangement == Arrangement.Top) Arrangement.spacedBy(spacing.dp)
-//        else Arrangement.spacedBy(spacing.dp, alignment.toVertical()),
-//        content = content
-//    )
-//}
-//
-//// --- HSTACK OVERLOADS ---
-//
-//// 1. ORIGINAL (Vertical Only - Default)
-//@Composable
-//fun HStack(
-//    alignment: Alignment.Vertical = Alignment.CenterVertically,
-//    spacing: Int = 0,
-//    modifier: Modifier = Modifier,
-//    content: @Composable RowScope.() -> Unit
-//) {
-//    Row(
-//        modifier = modifier, // HStack wraps width by default
-//        verticalAlignment = alignment,
-//        horizontalArrangement = Arrangement.spacedBy(spacing.dp),
-//        content = content
-//    )
-//}
-//
-//// 2. NEW: HORIZONTAL OVERLOAD (Handles .leading, .trailing - Main Axis)
-//@Composable
-//fun HStack(
-//    alignment: Alignment.Horizontal,
-//    spacing: Int = 0,
-//    modifier: Modifier = Modifier,
-//    content: @Composable RowScope.() -> Unit
-//) {
-//    Row(
-//        modifier = modifier,
-//        verticalAlignment = Alignment.CenterVertically, // Default
-//        horizontalArrangement = Arrangement.spacedBy(spacing.dp, alignment),
-//        content = content
-//    )
-//}
-//
-//// 3. NEW: 2D ALIGNMENT OVERLOAD
-//@Composable
-//fun HStack(
-//    alignment: Alignment,
-//    spacing: Int = 0,
-//    modifier: Modifier = Modifier,
-//    content: @Composable RowScope.() -> Unit
-//) {
-//    val (vertAlign, horizArrangement) = alignment.toRowRules()
-//
-//    Row(
-//        modifier = modifier,
-//        verticalAlignment = vertAlign,
-//        horizontalArrangement = if (horizArrangement == Arrangement.Start) Arrangement.spacedBy(spacing.dp)
-//        else Arrangement.spacedBy(spacing.dp, alignment.toHorizontal()),
-//        content = content
-//    )
-//}
-//
-//
-//// ---------------------------------------------------------------------------------------------
-//// HELPERS (Logic to decode 2D Alignment into 1D rules)
-//// ---------------------------------------------------------------------------------------------
-//
-//// Helper to convert 2D Alignment to specific Column rules
-//private fun Alignment.toColumnRules(): Pair<Arrangement.Vertical, Alignment.Horizontal> {
-//    return when (this) {
-//        Alignment.TopStart -> Arrangement.Top to Alignment.Start
-//        Alignment.TopCenter -> Arrangement.Top to Alignment.CenterHorizontally
-//        Alignment.TopEnd -> Arrangement.Top to Alignment.End
-//        Alignment.CenterStart -> Arrangement.Center to Alignment.Start
-//        Alignment.Center -> Arrangement.Center to Alignment.CenterHorizontally
-//        Alignment.CenterEnd -> Arrangement.Center to Alignment.End
-//        Alignment.BottomStart -> Arrangement.Bottom to Alignment.Start
-//        Alignment.BottomCenter -> Arrangement.Bottom to Alignment.CenterHorizontally
-//        Alignment.BottomEnd -> Arrangement.Bottom to Alignment.End
-//        else -> Arrangement.Top to Alignment.CenterHorizontally
-//    }
-//}
-//
-//// Helper to convert 2D Alignment to specific Row rules
-//private fun Alignment.toRowRules(): Pair<Alignment.Vertical, Arrangement.Horizontal> {
-//    return when (this) {
-//        Alignment.TopStart -> Alignment.Top to Arrangement.Start
-//        Alignment.TopCenter -> Alignment.Top to Arrangement.Center
-//        Alignment.TopEnd -> Alignment.Top to Arrangement.End
-//        Alignment.CenterStart -> Alignment.CenterVertically to Arrangement.Start
-//        Alignment.Center -> Alignment.CenterVertically to Arrangement.Center
-//        Alignment.CenterEnd -> Alignment.CenterVertically to Arrangement.End
-//        Alignment.BottomStart -> Alignment.Bottom to Arrangement.Start
-//        Alignment.BottomCenter -> Alignment.Bottom to Arrangement.Center
-//        Alignment.BottomEnd -> Alignment.Bottom to Arrangement.End
-//        else -> Alignment.CenterVertically to Arrangement.Start
-//    }
-//}
-//
-//private fun Alignment.toVertical(): Alignment.Vertical {
-//    return when(this) {
-//        Alignment.TopStart, Alignment.TopCenter, Alignment.TopEnd -> Alignment.Top
-//        Alignment.BottomStart, Alignment.BottomCenter, Alignment.BottomEnd -> Alignment.Bottom
-//        else -> Alignment.CenterVertically
-//    }
-//}
-//
-//private fun Alignment.toHorizontal(): Alignment.Horizontal {
-//    return when(this) {
-//        Alignment.TopStart, Alignment.CenterStart, Alignment.BottomStart -> Alignment.Start
-//        Alignment.TopEnd, Alignment.CenterEnd, Alignment.BottomEnd -> Alignment.End
-//        else -> Alignment.CenterHorizontally
-//    }
-//}
-//
-//
-//// ---------------------------------------------------------------------------------------------
-//// DRIFTVIEW & OTHERS
-//// ---------------------------------------------------------------------------------------------
-//
-//@Composable
-//fun ZStack(
-//    modifier: Modifier = Modifier,
-//    contentAlignment: Alignment = Alignment.Center,
-//    content: @Composable BoxScope.() -> Unit
-//) {
-//    Box(modifier = modifier, contentAlignment = contentAlignment, content = content)
-//}
-//
-//@Composable
-//fun DriftView(
-//    modifier: Modifier = Modifier,
-//    blockBackgroundAudio: Boolean = false,
-//    content: @Composable BoxScope.() -> Unit
-//) {
-//    val context = androidx.compose.ui.platform.LocalContext.current
-//    DriftRegistry.context = context.applicationContext
-//    val lifecycleOwner = LocalLifecycleOwner.current
-//
-//    val activity = context as? android.app.Activity
-//    DriftGlobals.currentActivity = activity
-//
-//    LaunchedEffect(Unit) {
-//        DriftAudio.initialize(context)
-//        DriftHaptics.initialize(context)
-//        DriftStorage.initialize(context)
-//        DriftGlobals.applicationContext = context.applicationContext
-//        DriftNotificationEngine.prepareIfNeeded()
-//    }
-//
-//    if (blockBackgroundAudio) {
-//        DisposableEffect(Unit) {
-//            DriftAudio.requestSilence(context)
-//            onDispose { DriftAudio.releaseSilence(context) }
-//        }
-//    }
-//
-//    DisposableEffect(lifecycleOwner) {
-//        val observer = LifecycleEventObserver { _, event ->
-//            if (event == Lifecycle.Event.ON_PAUSE) DriftAudio.onAppPause()
-//            else if (event == Lifecycle.Event.ON_RESUME) DriftAudio.onAppResume()
-//        }
-//        lifecycleOwner.lifecycle.addObserver(observer)
-//        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-//    }
-//
-//    Box(modifier = modifier.fillMaxSize().background(driftColors.background),
-//        contentAlignment = Alignment.Center) {
-//        content()
-//        DriftToastHost()
-//    }
-//}
-//
-//@Composable
-//fun ColumnScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-//@Composable
-//fun RowScope.Spacer() = androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-//@Composable
-//fun Spacer(size: Int) = androidx.compose.foundation.layout.Spacer(Modifier.size(size.dp))
-
 package com.example.driftui.core
 
 import android.app.Activity
@@ -278,6 +15,29 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.sqrt
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.util.rangeTo
+
+
+enum class Screen {
+    SmallPhone, // < 380dp
+    Phone,      // 380dp - 600dp (Standard)
+    Tablet,     // 600dp - 840dp
+    Desktop     // > 840dp
+}
+
+@Composable
+fun getScreenSizes(): Screen {
+    val config = LocalConfiguration.current
+    val width = config.screenWidthDp.dp
+
+    return when {
+        width < 380.dp -> Screen.SmallPhone
+        width < 600.dp -> Screen.Phone  // Acts as your "StrictMediumPhone"
+        width < 840.dp -> Screen.Tablet
+        else -> Screen.Desktop
+    }
+}
 
 
 object DriftScale {
@@ -587,6 +347,11 @@ fun ZStack(
     ) {
         content()
     }
+}
+
+@Composable
+fun Group(content: @Composable () -> Unit) {
+    content()
 }
 
 

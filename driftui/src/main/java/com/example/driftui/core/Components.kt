@@ -45,6 +45,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -68,6 +69,7 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
@@ -255,6 +257,49 @@ fun Arrow(
             .foundationBackground(fgColor)
     )
 }
+
+// --- FOUR POINT STAR (SPARKLE) SHAPE ---
+val FourPointStarShape = GenericShape { size, _ ->
+    val w = size.width
+    val h = size.height
+    val cx = w / 2f
+    val cy = h / 2f
+
+    // Start at Top Center
+    moveTo(cx, 0f)
+
+    // Curve to Right Center (pulling towards center)
+    quadraticBezierTo(cx, cy, w, cy)
+
+    // Curve to Bottom Center
+    quadraticBezierTo(cx, cy, cx, h)
+
+    // Curve to Left Center
+    quadraticBezierTo(cx, cy, 0f, cy)
+
+    // Curve back to Top Center
+    quadraticBezierTo(cx, cy, cx, 0f)
+
+    close()
+}
+
+@Composable
+fun FourPointStar(
+    width: Number, // Changed to Number to match your DSL style
+    height: Number,
+    modifier: Modifier = Modifier
+) {
+    val fgColor = modifier.getForegroundColor() ?: driftColors.text
+
+    Box(
+        modifier = modifier.applyShadowIfNeeded()
+            .size(width.toFloat().dp, height.toFloat().dp)
+            .clip(FourPointStarShape)
+            .foundationBackground(fgColor)
+    )
+}
+
+fun FourPointStar(): Shape = FourPointStarShape
 
 // --- SHAPE HELPER ---
 
@@ -1621,353 +1666,98 @@ fun hex(hexString: String): Color {
 }
 
 
-//Gauges:
+// Glass Look:
+
+//@Composable
+//fun GlassSurface(
+//    modifier: Modifier = Modifier,
+//    radius: Number = 16,
+//    blur: Number = 20,
+//    tint: Color = Color.white.copy(alpha = 0.12f),
+//    border: Color = Color.white.copy(alpha = 0.25f),
+//    content: @Composable () -> Unit
+//) {
+//    Box(
+//        modifier
+//            .clip(RoundedCornerShape(radius.toDp()))
+//            .background(tint)
+//            .blur(blur.toDp())
+//            .border(
+//                1.dp,
+//                border,
+//                RoundedCornerShape(radius.toDp())
+//            )
+//    ) {
+//        content()
+//    }
+//}
+
+@Composable
+fun GlassSurface(
+    modifier: Modifier = Modifier,
+    radius: Number = 24,
+    blur: Number = 20,
+    tint: Color = Color.white.copy(alpha = 0.18f),
+    border: Color = Color.white.copy(alpha = 0.45f),
+    content: @Composable () -> Unit
+) {
+    val shape = RoundedCornerShape(radius.toDp())
+
+    Box(
+        modifier
+            .clip(shape)
+            // 🔹 subtle elevation so glass separates
+            .shadow(
+                elevation = 12.dp,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.12f),
+                spotColor = Color.Black.copy(alpha = 0.18f)
+            )
+    ) {
+
+        // BACKDROP BLUR (only meaningful if something exists behind)
+        Box(
+            Modifier
+                .matchParentSize()
+                .background(tint)
+                .blur(blur.toDp())
+        )
+
+        // BORDER (defines the glass edge)
+        Box(
+            Modifier
+                .matchParentSize()
+                .border(1.dp, border, shape)
+        )
+
+        // CONTENT (sharp)
+        Box(
+            Modifier
+                .matchParentSize()
+        ) {
+            content()
+        }
+    }
+}
 
 
 
-//@Composable
-//fun LinearGauge(
-//    value: Number,
-//    range: IntRange = 0..100,
-//    modifier: Modifier = Modifier,
-//
-//    size: Number? = null,
-//    thickness: Number = 6.u,
-//
-//    currentValueLabel: (@Composable () -> Unit)? = null,
-//    minimumValueLabel: (@Composable () -> Unit)? = null,
-//    maximumValueLabel: (@Composable () -> Unit)? = null
-//)
-//
-//{
-//    val progress = normalizedValue(value, range)
-//
-//    val labels = GaugeLabels(
-//        currentValueLabel,
-//        minimumValueLabel,
-//        maximumValueLabel
-//    )
-//
-//    VStack(modifier) {
-//
-//        if (labels.current != null) {
-//            labels.current()
-//        }
-//
-//        Box(
-//            Modifier
-//                .then(if (size != null) Modifier.width(size.toFloat().dp) else Modifier.fillMaxWidth())
-//                .height(thickness.toFloat().dp)
-//                .background(
-//                    driftColors.fieldBackground,
-//                    RoundedCornerShape(thickness.toFloat().dp)
-//                )
-//        ) {
-//            Box(
-//                Modifier
-//                    .fillMaxHeight()
-//                    .fillMaxWidth(progress)
-//                    .background(
-//                        driftColors.accent,
-//                        RoundedCornerShape(thickness.toFloat().dp)
-//                    )
-//            )
-//        }
-//
-//        if (labels.min != null || labels.max != null) {
-//            HStack(Modifier.fillMaxWidth()) {
-//                labels.min?.invoke()
-//                Spacer()
-//                labels.max?.invoke()
-//            }
-//        }
-//    }
-//}
-//
-//
-//
-//@Composable
-//fun CircularGauge(
-//    value: Number,
-//    range: IntRange = 0..100,
-//    modifier: Modifier = Modifier,
-//
-//    radius: Number = 44.u,
-//    strokeWidth: Number = 6.u,
-//
-//    currentValueLabel: (@Composable () -> Unit)? = null,
-//    minimumValueLabel: (@Composable () -> Unit)? = null,
-//    maximumValueLabel: (@Composable () -> Unit)? = null
-//)
-//{
-//    val progress = normalizedValue(value, range)
-//    val size = radius.toFloat() * 2
-//
-//    Box(
-//        modifier = modifier.size(size.dp),
-//        contentAlignment = Alignment.Center
-//    ) {
-//        val trackColor = driftColors.fieldBackground
-//        val fillColor = driftColors.accent
-//
-//
-//        Canvas(Modifier.fillMaxSize()) {
-//            val stroke = Stroke(
-//                width = strokeWidth.toFloat(),
-//                cap = StrokeCap.Round
-//            )
-//
-//            drawArc(
-//                color = trackColor,
-//                startAngle = -90f,
-//                sweepAngle = 360f,
-//                useCenter = false,
-//                style = stroke
-//            )
-//
-//            drawArc(
-//                color = fillColor,
-//                startAngle = -90f,
-//                sweepAngle = 360f * progress,
-//                useCenter = false,
-//                style = stroke
-//            )
-//        }
-//
-//        if (currentValueLabel != null) {
-//            currentValueLabel()
-//        }
-//    }
-//
-//    if (minimumValueLabel != null || maximumValueLabel != null) {
-//        HStack(modifier) {
-//            minimumValueLabel?.invoke()
-//            Spacer()
-//            maximumValueLabel?.invoke()
-//        }
-//    }
-//}
-//
-//@Composable
-//fun AccessoryCircularGauge(
-//    value: Number,
-//    range: IntRange = 0..100,
-//    modifier: Modifier = Modifier,
-//
-//    radius: Number = 18.u,
-//    strokeWidth: Number = 4.u,
-//
-//    icon: (@Composable () -> Unit)? = null
-//)
-//{
-//    val progress = normalizedValue(value, range)
-//    val size = radius.toFloat() * 2
-//
-//    Box(
-//        modifier = modifier.size(size.dp),
-//        contentAlignment = Alignment.Center
-//    ) {
-//        val trackColor = driftColors.fieldBackground.copy(alpha = 0.4f)
-//        val fillColor = driftColors.accent
-//
-//
-//        Canvas(Modifier.fillMaxSize()) {
-//            val stroke = Stroke(
-//                width = strokeWidth.toFloat(),
-//                cap = StrokeCap.Round
-//            )
-//
-//            drawArc(
-//                color = trackColor,
-//                startAngle = -90f,
-//                sweepAngle = 360f,
-//                useCenter = false,
-//                style = stroke
-//            )
-//
-//            drawArc(
-//                color = fillColor,
-//                startAngle = -90f,
-//                sweepAngle = 360f * progress,
-//                useCenter = false,
-//                style = stroke
-//            )
-//        }
-//
-//        icon?.invoke()
-//    }
-//}
-//
-//
-//
-////Gauge overload for supporting double data type in range:
-//
-//@Composable
-//fun LinearGauge(
-//    value: Number,
-//    range: ClosedFloatingPointRange<Double>,
-//    modifier: Modifier = Modifier,
-//
-//    size: Number? = null,
-//    thickness: Number = 6.u,
-//
-//    currentValueLabel: (@Composable () -> Unit)? = null,
-//    minimumValueLabel: (@Composable () -> Unit)? = null,
-//    maximumValueLabel: (@Composable () -> Unit)? = null
-//){
-//    val progress = normalizedValue(value, range)
-//
-//    val labels = GaugeLabels(
-//        currentValueLabel,
-//        minimumValueLabel,
-//        maximumValueLabel
-//    )
-//
-//    VStack(modifier) {
-//
-//        if (labels.current != null) {
-//            labels.current()
-//        }
-//
-//        Box(
-//            Modifier
-//                .then(if (size != null) Modifier.width(size.toFloat().dp) else Modifier.fillMaxWidth())
-//                .height(thickness.toFloat().dp)
-//                .background(
-//                    driftColors.fieldBackground,
-//                    RoundedCornerShape(thickness.toFloat().dp)
-//                )
-//        ) {
-//            Box(
-//                Modifier
-//                    .fillMaxHeight()
-//                    .fillMaxWidth(progress)
-//                    .background(
-//                        driftColors.accent,
-//                        RoundedCornerShape(thickness.toFloat().dp)
-//                    )
-//            )
-//        }
-//
-//        if (labels.min != null || labels.max != null) {
-//            HStack(Modifier.fillMaxWidth()) {
-//                labels.min?.invoke()
-//                Spacer()
-//                labels.max?.invoke()
-//            }
-//        }
-//    }
-//}
-//
-//
-//
-//@Composable
-//fun CircularGauge(
-//    value: Number,
-//    range: ClosedFloatingPointRange<Double>,
-//    modifier: Modifier = Modifier,
-//
-//    radius: Number = 44.u,
-//    strokeWidth: Number = 6.u,
-//
-//    currentValueLabel: (@Composable () -> Unit)? = null,
-//    minimumValueLabel: (@Composable () -> Unit)? = null,
-//    maximumValueLabel: (@Composable () -> Unit)? = null
-//)
-//{
-//    val progress = normalizedValue(value, range)
-//    val size = radius.toFloat() * 2
-//
-//    Box(
-//        modifier = modifier.size(size.dp),
-//        contentAlignment = Alignment.Center
-//    ) {
-//        val trackColor = driftColors.fieldBackground
-//        val fillColor = driftColors.accent
-//
-//        Canvas(Modifier.fillMaxSize()) {
-//            val stroke = Stroke(
-//                width = strokeWidth.toFloat(),
-//                cap = StrokeCap.Round
-//            )
-//
-//            drawArc(
-//                color = trackColor,
-//                startAngle = -90f,
-//                sweepAngle = 360f,
-//                useCenter = false,
-//                style = stroke
-//            )
-//
-//            drawArc(
-//                color = fillColor,
-//                startAngle = -90f,
-//                sweepAngle = 360f * progress,
-//                useCenter = false,
-//                style = stroke
-//            )
-//        }
-//
-//        if (currentValueLabel != null) {
-//            currentValueLabel()
-//        }
-//    }
-//
-//    if (minimumValueLabel != null || maximumValueLabel != null) {
-//        HStack(modifier) {
-//            minimumValueLabel?.invoke()
-//            Spacer()
-//            maximumValueLabel?.invoke()
-//        }
-//    }
-//}
-//
-//@Composable
-//fun AccessoryCircularGauge(
-//    value: Number,
-//    range: ClosedFloatingPointRange<Double>,
-//    modifier: Modifier = Modifier,
-//
-//    radius: Number = 18.u,
-//    strokeWidth: Number = 4.u,
-//
-//    icon: (@Composable () -> Unit)? = null
-//)
-//{
-//    val progress = normalizedValue(value, range)
-//    val size = radius.toFloat() * 2
-//
-//    Box(
-//        modifier = modifier.size(size.dp),
-//        contentAlignment = Alignment.Center
-//    ) {
-//
-//        val trackColor = driftColors.fieldBackground.copy(alpha = 0.4f)
-//        val fillColor = driftColors.accent
-//
-//        Canvas(Modifier.fillMaxSize()) {
-//            val stroke = Stroke(
-//                width = strokeWidth.toFloat(),
-//                cap = StrokeCap.Round
-//            )
-//
-//            drawArc(
-//                color = trackColor,
-//                startAngle = -90f,
-//                sweepAngle = 360f,
-//                useCenter = false,
-//                style = stroke
-//            )
-//
-//            drawArc(
-//                color = fillColor,
-//                startAngle = -90f,
-//                sweepAngle = 360f * progress,
-//                useCenter = false,
-//                style = stroke
-//            )
-//        }
-//
-//        icon?.invoke()
-//    }
-//}
+@Composable
+fun GlassVessel(
+    content: @Composable () -> Unit
+) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.white.copy(alpha = 0.45f))
+            .border(
+                1.dp,
+                Color.white.copy(alpha = 0.6f),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(12)
+    ) {
+        content()
+    }
+}
+

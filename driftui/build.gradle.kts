@@ -60,6 +60,7 @@ dependencies {
     implementation ("androidx.activity:activity-compose:1.9.0")
     implementation ("androidx.core:core-ktx:1.13.0")
 
+
     //Firebase Dependencies-
 
     api(platform("com.google.firebase:firebase-bom:34.7.0"))
@@ -78,7 +79,7 @@ afterEvaluate {
 
                 groupId = "com.example"
                 artifactId = "driftui"
-                version = "0.1.62"
+                version = "0.1.77"
             }
         }
     }

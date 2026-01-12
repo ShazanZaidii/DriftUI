@@ -32,8 +32,10 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
-
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.drawOutline
 
 
 // ---------------------------------------------------------------------------------------------
@@ -720,3 +722,55 @@ class GradientColor internal constructor(
 fun linearGradient(colors: List<Color>): GradientColor =
     GradientColor(colors)
 
+
+// ---------------------------------------------------------------------------------------------
+// SUBTRACTION / MASKING
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Subtracts a shape from the current content.
+ * effectively "erasing" the area defined by the shape/size/offset.
+ */
+fun Modifier.subtract(
+    shape: Shape,
+    width: Number,
+    height: Number,
+    x: Number = 0,
+    y: Number = 0
+): Modifier = this
+    // 1. Create an offscreen buffer so the 'Clear' blend mode
+    //    only affects this component, not the whole window.
+    .graphicsLayer {
+        compositingStrategy = CompositingStrategy.Offscreen
+    }
+    // 2. Draw the content, then draw the "Hole" on top
+    .drawWithContent {
+        drawContent()
+
+        val w = width.toFloat().dp.toPx()
+        val h = height.toFloat().dp.toPx()
+        val xPx = x.toFloat().dp.toPx()
+        val yPx = y.toFloat().dp.toPx()
+
+        val holeSize = Size(w, h)
+
+        // Convert the generic Shape to an Outline based on the requested size
+        val outline = shape.createOutline(holeSize, layoutDirection, this)
+
+        // Draw the shape with BlendMode.Clear to cut the hole
+        drawIntoCanvas { canvas ->
+            // Save state to translate just for the hole
+            canvas.save()
+            canvas.translate(xPx, yPx)
+
+            val paint = Paint().apply {
+                color = Color.Black // Color doesn't matter for BlendMode.Clear
+                blendMode = BlendMode.Clear
+                isAntiAlias = true
+            }
+
+            canvas.drawOutline(outline, paint)
+
+            canvas.restore()
+        }
+    }
