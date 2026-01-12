@@ -1007,6 +1007,7 @@ fun FirebaseStoreTest() {
     value, range, radius, thickness, fillColor, tracker . 
     To adjust size use frame around it (for example if you need to adjust length of LinearGauge.)  </h3>
 <h2>CODE EXAMPLE: [AccessoryCircularGauge] </h2>
+
 ```
 AccessoryCircularGauge(
                                 value = 20,
@@ -1034,9 +1035,7 @@ AccessoryCircularGauge(
                                             Color.white.copy(alpha = 0.9f)
                                         )
                                     )
-//
                                 },
-                                // Calm single-direction gradient
 
 
                             ) {
@@ -1059,148 +1058,61 @@ AccessoryCircularGauge(
                                 }
                             }
 ``` 
-   
+
+<h1> 39. Subtract Modifier, FourPointStar Shape, Screen Sizes based ui designing - eg- if(Screen.Tablet), Group{} (Same implementation as in swiftui except you cannot apply modifiers to it for now in future updates i will add that too) </h1>
+
+<h3>Applied a Rectangle Cutout to Circle: </h3>
+
+```
+Circle(81.u.toInt(), Modifier.foregroundStyle(Color.gray.copy(0.3f))
+                                        .offset(x= 72.wu.toInt(), y= -40.hu.toInt()).subtract(
+                                            shape = RectangleShape,
+                                            width = 220.wu,
+                                            height = 66.hu,
+                                            x = -5.wu,
+                                            y = -21.hu
+                                        ))
+
+```
+
+<h3> FourPointStar: </h3>
+
+```
+FourPointStar(45,45, Modifier.foregroundStyle(Color.cyan))
+
+```
+
+<h3> Screen Sizes Based Logic: </h3>
+
+```
+//In the file you want to design UI differently for different devices define this first-
+        val screen = getScreenSizes()   // getScreenSizes is defined in dsl
+
+   //Then you can design deviceSpecificUI by doing:
+
+if(screen == Screen.Phone){   // Screen.SmallPhone, or Screen.Tablet or Screen.Desktop
+
+    //Specific UI design elements go here
+
+}
+
+
+```
+
+
 **********</br>
+
 Steps to Use DriftUI:
-1. Create a new Module of type Android Library
-2. Name it driftui
-3. if already not created, create a new package named- "com.example.driftui" and there create a new Kotlin Class/File and paste the contents of Layout.kt from the repo
-4. Satisfy build.gradle requirements.
-5. And you are ready to go!
+1. Clone this git repo and open the project in android studio.
+2. Publish driftui to Maven Local on your Machine
+3. Add the dependency - implementation("com.example:driftui:0.1.78") or whatever the current version is when you are cloning
+   NOTE: (You can check the version at driftui/build.gradle.kts by looking into the version section at the end of the file)
+4. Import com.example.driftui.core.* in the files you want to use driftui in.
+5. Voila! Happy Journey! 
 
 Project Structure:
 ![ss](https://github.com/user-attachments/assets/ce719ab5-02a8-407b-98e2-5cc479a90a9f)
 
-For Imports:
-
-```
-//MainActivity.kt:
-package com.example.myapplication
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import com.example.driftui.DriftView
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            DriftView {
-                LoginScreenView()
-            }
-        }
-    }
-}
-
-```
-
-```
-//build.gradle.kts(:driftui)
-plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    alias(libs.plugins.kotlin.compose)
-}
-
-android {
-    namespace = "com.example.driftui"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 21
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-}
-
-dependencies {
-    implementation(platform("androidx.compose:compose-bom:2025.11.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-
-    // MVVM Dependency that was missing
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
-}
-
-```
-
-```
-//build.gradle.kts(:app)
-plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-}
-
-android {
-    namespace = "com.example.myapplication"
-    compileSdk = 36
-
-    defaultConfig {
-        applicationId = "com.example.myapplication"
-        minSdk = 24
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-    buildFeatures {
-        compose = true
-    }
-}
-
-dependencies {
-    implementation(project(":driftui"))
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.compose.foundation)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-}
-```
 
 Checkout Screenhot:
 ![Screenshot 2025-11-18 at 12 43 29 PM](https://github.com/user-attachments/assets/5139df8a-706d-4fc8-af20-3d3cecf37ee5)
