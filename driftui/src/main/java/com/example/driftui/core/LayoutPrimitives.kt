@@ -169,6 +169,22 @@ fun VStack(
 }
 
 
+// Add this to LayoutPrimitives.kt
+@Composable
+fun Block(
+    modifier: Modifier = Modifier,
+    spacing: Int = 0,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    // A standard column that doesn't force fillMaxWidth()
+    androidx.compose.foundation.layout.Column(
+        modifier = modifier, // Allows the block to be centered by a parent VStack
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(spacing.dp),
+        horizontalAlignment = androidx.compose.ui.Alignment.Start, // Default to leading text
+        content = content
+    )
+}
+
 // --- HSTACK OVERLOADS ---
 
 // 1. MAIN (Modifier First - Default)
