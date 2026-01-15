@@ -54,6 +54,7 @@ fun MenuItem(
 // PUBLIC API: SIDE MENU (Overlay Toolbar)
 // =============================================================================================
 
+
 @Composable
 fun SideMenu(
     isOpen: Boolean,
@@ -65,52 +66,33 @@ fun SideMenu(
     if (!isOpen) return
 
     val scope = remember { MenuScope() }
+    CompositionLocalProvider(LocalMenuScope provides scope) { content() }
 
-    // Collect menu items (toolbar-style declaration phase)
-    CompositionLocalProvider(LocalMenuScope provides scope) {
-        content()
-    }
+    Box(Modifier.fillMaxSize().zIndex(100f)) {
+        // Scrim
+        Box(Modifier.fillMaxSize().background(scrimColor).clickable { onDismiss() })
 
-    // Overlay layer (draws over toolbar)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .zIndex(100f)
-    ) {
+        // Menu Surface
+        Column(modifier.fillMaxHeight().align(Alignment.CenterStart)) {
 
-        // Scrim (dismiss on tap)
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(scrimColor)
-                .clickable { onDismiss() }
-        )
-
-        // Menu surface (vertical toolbar)
-        Column(
-            modifier
-                .fillMaxHeight()
-                .align(Alignment.CenterStart)
-        ) {
-
-            // TOP
-            Column(Modifier.weight(1f)) {
+            // 1. TOP SECTION (No weight -> Hugs content)
+            Column(Modifier.fillMaxWidth()) {
                 scope.top.forEach { it() }
             }
 
-            // CENTER
-            Column(
-                Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
+            // 2. SPACER (Pushes Center down slightly, or expands if empty)
+            Spacer(Modifier.weight(1f))
+
+            // 3. CENTER SECTION (No weight -> Expands as needed)
+            Column(Modifier.fillMaxWidth()) {
                 scope.center.forEach { it() }
             }
 
-            // BOTTOM
-            Column(
-                Modifier.weight(1f),
-                verticalArrangement = Arrangement.Bottom
-            ) {
+            // 4. SPACER (Pushes Bottom down)
+            Spacer(Modifier.weight(1f))
+
+            // 5. BOTTOM SECTION
+            Column(Modifier.fillMaxWidth()) {
                 scope.bottom.forEach { it() }
             }
         }
