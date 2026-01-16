@@ -652,21 +652,28 @@ fun Divider(
 // --- INTELLIGENT LISTS (THE FIX) ---
 
 // 1. Standalone List (Normal behavior)
+// In Components.kt
+
 @Composable
-fun List(
-    alignment: Alignment = center,
+fun <T> List(
+    items: List<T>,
+    // Default to BottomCenter for Chat, TopCenter for regular lists
+    alignment: Alignment = Alignment.TopCenter,
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
+    reversed: Boolean = false, // <--- NEW PARAMETER
+    rowContent: @Composable (T) -> Unit
 ) {
-    Box(Modifier.fillMaxSize(), contentAlignment = alignment) {
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8)
-                .clip(RoundedRectangle(10))
-                .background(driftColors.fieldBackground.copy(alpha = 0.2f)),
-            content = content
-        )
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp),
+        reverseLayout = reversed, // <--- The Secret Sauce
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        itemsIndexed(items) { index, item ->
+            rowContent(item)
+        }
     }
 }
 
