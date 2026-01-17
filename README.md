@@ -1099,6 +1099,19 @@ if(screen == Screen.Phone){   // Screen.SmallPhone, or Screen.Tablet or Screen.D
 
 ```
 
+<h1> 40. onActiveSession- Better version of LaunchedEffect: You can pass delays, to Always do something whenever app is launched regardless or with regard to the parameter by changing the alwaysLaunchAtLogin optional parameter's value- defaulted to true to behave like simple launched effect. </h1>
+
+Example: (You can set the delay by doing Int.minutes/ .seconds / .milliseconds / .hours/ even .days ,, where int is any integer value.)
+```
+//In this example the action happens only when 5 minutes are passed, irrespective if the app is relaunched, with the key - foundUser.username meaning  after 5 minutes if it changes the action is performed 
+onActiveSession(delay = 5.minutes, key = foundUser?.username, alwaysLaunchAtLogin = false) {
+                    if(foundUser != null){
+                        viewModel.users.edit(foundUser){
+                            copy(lastSeenAt = System.currentTimeMillis())
+                        }
+                    }
+                }
+```
 
 **********</br>
 
