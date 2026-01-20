@@ -1,6 +1,20 @@
 <h1>Till now it supports: </h1>
-*NOTE: Do not forget to wrap everything in DriftView{} it acts as an initialiser and manager for other blocks.
-<h2>1. H,V and ZStacks  </h2>
+*NOTE: Do not forget to wrap everything in DriftView{} it acts as an initialiser and manager for other blocks. Also by default In driftView useSafeArea = true, you can set it to false to allow the elements/ Views to even fall out of the screen.
+
+<h2>1. H,V and ZStacks - Support alignment now!</h2>
+Example:
+
+```
+@Composable
+fun Test(){
+    DriftView() {
+        VStack(modifier = Modifier.fillMaxSize().alignment(Alignment.Center)) {
+            Text("Hello")
+            Text("Hey")
+        }
+    }
+}
+```
 <h2>2. Paddings Example- Text("hello", Modifier.padding(leading = 20) </br>
 <h2>3. Background & Color</h2>
 <h2>4. Shapes, ClipShape - Remember clipShape should be used before giving a background color</h2>
