@@ -71,3 +71,6 @@
    }
 
    ```
+
+
+3. By default In driftView useSafeArea = true, you can set it to false to allow the elements/ Views to even fall out of the screen
