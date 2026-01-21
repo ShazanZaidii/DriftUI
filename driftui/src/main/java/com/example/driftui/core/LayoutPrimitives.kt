@@ -347,33 +347,32 @@ fun Group(content: @Composable () -> Unit) {
 }
 
 
+// ---------------------------------------------------------------------------------------------
+// DRIFTVIEW (Manager + Container)
+// ---------------------------------------------------------------------------------------------
 @Composable
 fun DriftView(
     modifier: Modifier = Modifier,
     blockBackgroundAudio: Boolean = false,
-    useSafeArea: Boolean = true, // <--- NEW: Defaults to TRUE (Safe Constraints)
+    useSafeArea: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
     val context = LocalContext.current
-    DriftRegistry.context = context.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
-    val activity = context as? Activity
-    DriftGlobals.currentActivity = activity
+
+    // --- 1. INITIALIZATION LOGIC (KEPT) ---
+    DriftRegistry.context = context.applicationContext
+    DriftGlobals.currentActivity = context as? Activity
+    DriftGlobals.applicationContext = context.applicationContext
 
     val config = LocalConfiguration.current
-
-    DriftScale.widthScale =
-        config.screenWidthDp / DriftScale.REFERENCE_WIDTH
-
-    DriftScale.heightScale =
-        config.screenHeightDp / DriftScale.REFERENCE_HEIGHT
-
+    DriftScale.widthScale = config.screenWidthDp / DriftScale.REFERENCE_WIDTH
+    DriftScale.heightScale = config.screenHeightDp / DriftScale.REFERENCE_HEIGHT
 
     LaunchedEffect(Unit) {
         DriftAudio.initialize(context)
         DriftHaptics.initialize(context)
         DriftStorage.initialize(context)
-        DriftGlobals.applicationContext = context.applicationContext
         DriftNotificationEngine.prepareIfNeeded()
     }
 
@@ -393,21 +392,24 @@ fun DriftView(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // ROOT BOX (Background goes Edge-to-Edge)
-    Box(modifier = modifier.fillMaxSize().background(driftColors.background),
-        contentAlignment = Alignment.Center) {
+    // --- 2. LAYOUT LOGIC ---
+    // Defaults to TopStart (Standard) unless user overrides via Modifier.alignment(...)
+    val effectiveAlignment = modifier.getAlignment() ?: Alignment.TopStart
 
-        // CONTENT BOX (Respects Safe Area by default)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(driftColors.background),
+        contentAlignment = effectiveAlignment
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                // This is the Magic Constraint ⬇️
-                .then(if (useSafeArea) Modifier.systemBarsPadding() else Modifier)
+                .then(if (useSafeArea) Modifier.systemBarsPadding() else Modifier),
+            contentAlignment = effectiveAlignment
         ) {
             content()
         }
-
-        // Toasts float on top, ignoring safe area (optional, usually preferred)
         DriftToastHost()
     }
 }
