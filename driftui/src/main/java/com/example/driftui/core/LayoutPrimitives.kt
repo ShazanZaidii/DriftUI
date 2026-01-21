@@ -15,7 +15,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.sqrt
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.util.rangeTo
 
 
@@ -78,6 +77,7 @@ val bottomTrailing: Alignment = Alignment.BottomEnd
  * 1. Modifier First: VStack(padding(10)) { }
  * 2. Alignment First: VStack(leading) { }
  * 3. 2D/Vertical Overloads
+ * * FIX: Now prioritizes Modifier.alignment() over parameters.
  */
 
 // 1. MAIN (Modifier First - Default)
@@ -88,17 +88,21 @@ fun VStack(
     spacing: Int = 0,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val modifierAlignment = modifier.getAlignment()
+    // 1. EXTRACT: Get the raw alignment from the modifier
+    val modifierAlign = modifier.getAlignment()
 
-    val horizontalAlignment =
-        modifierAlignment?.toHorizontal() ?: alignment
+    // 2. RESOLVE HORIZONTAL (Cross Axis)
+    // If modifier exists, convert it to Horizontal. If not, use param.
+    val horizontalAlignment = modifierAlign?.toHorizontal() ?: alignment
 
-    val verticalArrangement =
-        modifierAlignment?.toVertical()?.let {
-            Arrangement.spacedBy(spacing.dp, it)
-        } ?: Arrangement.spacedBy(spacing.dp)
+    // 3. RESOLVE VERTICAL (Main Axis)
+    // If modifier exists, convert it to Vertical arrangement. If not, default to Top.
+    val verticalArrangement = modifierAlign?.toVertical()?.let {
+        Arrangement.spacedBy(spacing.dp, it)
+    } ?: Arrangement.spacedBy(spacing.dp)
 
     Column(
+        // Force fillMaxWidth so horizontal alignment works
         modifier = modifier.fillMaxWidth().applyShadowIfNeeded(),
         horizontalAlignment = horizontalAlignment,
         verticalArrangement = verticalArrangement,
@@ -115,6 +119,7 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // Delegate to Main VStack
     VStack(modifier, alignment, spacing, content)
 }
 
@@ -126,18 +131,20 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val modifierAlignment = modifier.getAlignment()
+    // Inject alignment into modifier if not present, then delegate
+    val finalMod = if (modifier.getAlignment() == null) modifier.alignment(Alignment.TopCenter) else modifier
 
-    val vertical =
-        modifierAlignment?.toVertical() ?: alignment
+    // We manually construct here because passing "Vertical" to "Horizontal" param is tricky
+    // So we use the robust extraction logic directly:
 
-    val horizontal =
-        modifierAlignment?.toHorizontal() ?: Alignment.CenterHorizontally
+    val modifierAlign = finalMod.getAlignment()
+    val horizontal = modifierAlign?.toHorizontal() ?: Alignment.CenterHorizontally
+    val vertical = (modifierAlign?.toVertical() ?: alignment).let { Arrangement.spacedBy(spacing.dp, it) }
 
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = finalMod.fillMaxWidth().applyShadowIfNeeded(),
         horizontalAlignment = horizontal,
-        verticalArrangement = Arrangement.spacedBy(spacing.dp, vertical),
+        verticalArrangement = vertical,
         content = content
     )
 }
@@ -151,25 +158,18 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val modifierAlignment = modifier.getAlignment()
-    val effectiveAlignment = modifierAlignment ?: alignment
+    // Inject alignment into modifier if not present
+    val finalMod = if (modifier.getAlignment() == null) modifier.alignment(alignment) else modifier
 
-    val (vertArrangement, horizAlign) = effectiveAlignment.toColumnRules()
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = horizAlign,
-        verticalArrangement =
-            if (vertArrangement == Arrangement.Top)
-                Arrangement.spacedBy(spacing.dp)
-            else
-                Arrangement.spacedBy(spacing.dp, effectiveAlignment.toVertical()),
+    // Delegate to Main VStack (it will extract the alignment from the modifier)
+    VStack(
+        modifier = finalMod,
+        spacing = spacing,
         content = content
     )
 }
 
 
-// Add this to LayoutPrimitives.kt
 @Composable
 fun Block(
     modifier: Modifier = Modifier,
@@ -195,15 +195,15 @@ fun HStack(
     spacing: Int = 0,
     content: @Composable RowScope.() -> Unit
 ) {
-    val modifierAlignment = modifier.getAlignment()
+    val modifierAlign = modifier.getAlignment()
 
-    val verticalAlignment =
-        modifierAlignment?.toVertical() ?: alignment
+    // 1. RESOLVE VERTICAL (Cross Axis)
+    val verticalAlignment = modifierAlign?.toVertical() ?: alignment
 
-    val horizontalArrangement =
-        modifierAlignment?.toHorizontal()?.let {
-            Arrangement.spacedBy(spacing.dp, it)
-        } ?: Arrangement.spacedBy(spacing.dp)
+    // 2. RESOLVE HORIZONTAL (Main Axis)
+    val horizontalArrangement = modifierAlign?.toHorizontal()?.let {
+        Arrangement.spacedBy(spacing.dp, it)
+    } ?: Arrangement.spacedBy(spacing.dp)
 
     Row(
         modifier = modifier.applyShadowIfNeeded(),
@@ -234,18 +234,17 @@ fun HStack(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit
 ) {
-    val modifierAlignment = modifier.getAlignment()
+    // Inject alignment into modifier if not present
+    val finalMod = if (modifier.getAlignment() == null) modifier.alignment(Alignment.CenterStart) else modifier
 
-    val horizontal =
-        modifierAlignment?.toHorizontal() ?: alignment
-
-    val vertical =
-        modifierAlignment?.toVertical() ?: Alignment.CenterVertically
+    val modifierAlign = finalMod.getAlignment()
+    val vertical = modifierAlign?.toVertical() ?: Alignment.CenterVertically
+    val horizontal = (modifierAlign?.toHorizontal() ?: alignment).let { Arrangement.spacedBy(spacing.dp, it) }
 
     Row(
-        modifier = modifier,
+        modifier = finalMod.applyShadowIfNeeded(),
         verticalAlignment = vertical,
-        horizontalArrangement = Arrangement.spacedBy(spacing.dp, horizontal),
+        horizontalArrangement = horizontal,
         content = content
     )
 }
@@ -259,19 +258,12 @@ fun HStack(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit
 ) {
-    val modifierAlignment = modifier.getAlignment()
-    val effectiveAlignment = modifierAlignment ?: alignment
+    val finalMod = if (modifier.getAlignment() == null) modifier.alignment(alignment) else modifier
 
-    val (vertAlign, horizArrangement) = effectiveAlignment.toRowRules()
-
-    Row(
-        modifier = modifier,
-        verticalAlignment = vertAlign,
-        horizontalArrangement =
-            if (horizArrangement == Arrangement.Start)
-                Arrangement.spacedBy(spacing.dp)
-            else
-                Arrangement.spacedBy(spacing.dp, effectiveAlignment.toHorizontal()),
+    // Delegate to Main HStack
+    HStack(
+        modifier = finalMod,
+        spacing = spacing,
         content = content
     )
 }
@@ -282,7 +274,7 @@ fun HStack(
 // HELPERS (Logic to decode 2D Alignment into 1D rules)
 // ---------------------------------------------------------------------------------------------
 
-private fun Alignment.toColumnRules(): Pair<Arrangement.Vertical, Alignment.Horizontal> {
+fun Alignment.toColumnRules(): Pair<Arrangement.Vertical, Alignment.Horizontal> {
     return when (this) {
         Alignment.TopStart -> Arrangement.Top to Alignment.Start
         Alignment.TopCenter -> Arrangement.Top to Alignment.CenterHorizontally
@@ -297,7 +289,7 @@ private fun Alignment.toColumnRules(): Pair<Arrangement.Vertical, Alignment.Hori
     }
 }
 
-private fun Alignment.toRowRules(): Pair<Alignment.Vertical, Arrangement.Horizontal> {
+fun Alignment.toRowRules(): Pair<Alignment.Vertical, Arrangement.Horizontal> {
     return when (this) {
         Alignment.TopStart -> Alignment.Top to Arrangement.Start
         Alignment.TopCenter -> Alignment.Top to Arrangement.Center
@@ -312,7 +304,7 @@ private fun Alignment.toRowRules(): Pair<Alignment.Vertical, Arrangement.Horizon
     }
 }
 
-private fun Alignment.toVertical(): Alignment.Vertical {
+fun Alignment.toVertical(): Alignment.Vertical {
     return when(this) {
         Alignment.TopStart, Alignment.TopCenter, Alignment.TopEnd -> Alignment.Top
         Alignment.BottomStart, Alignment.BottomCenter, Alignment.BottomEnd -> Alignment.Bottom
@@ -320,7 +312,7 @@ private fun Alignment.toVertical(): Alignment.Vertical {
     }
 }
 
-private fun Alignment.toHorizontal(): Alignment.Horizontal {
+fun Alignment.toHorizontal(): Alignment.Horizontal {
     return when(this) {
         Alignment.TopStart, Alignment.CenterStart, Alignment.BottomStart -> Alignment.Start
         Alignment.TopEnd, Alignment.CenterEnd, Alignment.BottomEnd -> Alignment.End
@@ -334,35 +326,19 @@ private fun Alignment.toHorizontal(): Alignment.Horizontal {
 // ---------------------------------------------------------------------------------------------
 
 @Composable
-private fun BoxScope.ApplyAlignmentIfNeeded(
-    modifier: Modifier,
-    content: @Composable () -> Unit
-) {
-    val alignment = modifier.getAlignment()
-
-    if (alignment != null) {
-        Box(
-            modifier = Modifier.align(alignment)
-        ) {
-            content()
-        }
-    } else {
-        content()
-    }
-}
-
-@Composable
 fun ZStack(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.Center,
-    content: @Composable () -> Unit
+    content: @Composable BoxScope.() -> Unit // Changed to BoxScope for maximum flexibility
 ) {
+    // 1. ROBUST FIX: Check modifier first. If null, use parameter.
+    val effectiveAlignment = modifier.getAlignment() ?: contentAlignment
+
     Box(
         modifier = modifier.applyShadowIfNeeded(),
-        contentAlignment = contentAlignment
-    ) {
-        content()
-    }
+        contentAlignment = effectiveAlignment,
+        content = content
+    )
 }
 
 @Composable
@@ -375,6 +351,7 @@ fun Group(content: @Composable () -> Unit) {
 fun DriftView(
     modifier: Modifier = Modifier,
     blockBackgroundAudio: Boolean = false,
+    useSafeArea: Boolean = true, // <--- NEW: Defaults to TRUE (Safe Constraints)
     content: @Composable BoxScope.() -> Unit
 ) {
     val context = LocalContext.current
@@ -416,9 +393,21 @@ fun DriftView(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // ROOT BOX (Background goes Edge-to-Edge)
     Box(modifier = modifier.fillMaxSize().background(driftColors.background),
         contentAlignment = Alignment.Center) {
-        content()
+
+        // CONTENT BOX (Respects Safe Area by default)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                // This is the Magic Constraint ⬇️
+                .then(if (useSafeArea) Modifier.systemBarsPadding() else Modifier)
+        ) {
+            content()
+        }
+
+        // Toasts float on top, ignoring safe area (optional, usually preferred)
         DriftToastHost()
     }
 }

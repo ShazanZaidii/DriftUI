@@ -1,5 +1,5 @@
 package com.example.driftui.core
-//This file is NavigationSheet.kt
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -29,10 +29,8 @@ import kotlin.math.abs
 import androidx.compose.material3.ExperimentalMaterial3Api
 import android.app.Activity
 import androidx.compose.ui.platform.LocalContext
-
 import androidx.compose.animation.core.FastOutSlowInEasing
-// --- CUSTOM IMPORTS ---
-
+import androidx.compose.ui.graphics.Brush
 
 // ---------------------------
 // Toolbar model + registration
@@ -75,50 +73,68 @@ val LocalToolbarBackground = compositionLocalOf<Color?> { null }
 val LocalToolbarElevation = compositionLocalOf<Dp?> { null }
 val LocalToolbarContentPadding = compositionLocalOf<Dp?> { null }
 
-// toolbar {} block
 @Composable
 fun toolbar(
     modifier: Modifier = Modifier,
+    foreground: Color? = null,
+    background: Color? = null,
+    elevation: Dp? = null,
+    contentPadding: Dp? = null,
     content: @Composable () -> Unit
 ) {
-    // Extract ONLY styling values from modifier for locals
-    var fg: Color? = null
-    var bg: Color? = null
-    var elev: Dp? = null
-    var paddingDp: Dp? = null
+    // 1. Create a style modifier from the arguments
+    var styleMod = modifier
 
-    modifier.foldIn(Unit) { _, element ->
+    if (foreground != null || background != null || elevation != null || contentPadding != null) {
+        styleMod = styleMod.then(
+            Modifier.toolbarStyle(
+                foregroundColor = foreground,
+                backgroundColor = background,
+                elevation = elevation,
+                contentPadding = contentPadding
+            )
+        )
+    }
+
+    // 2. Extract values to provide to children (CompositionLocal)
+    var finalFg: Color? = foreground
+    var finalBg: Color? = background
+    var finalElev: Dp? = elevation
+    var finalPad: Dp? = contentPadding
+
+    styleMod.foldIn(Unit) { _, element ->
         if (element is ToolbarStyleModifier) {
-            if (element.foreground != null) fg = element.foreground
-            if (element.background != null) bg = element.background
-            if (element.elevation != null) elev = element.elevation
-            if (element.contentPadding != null) paddingDp = element.contentPadding
+            if (element.foreground != null) finalFg = element.foreground
+            if (element.background != null) finalBg = element.background
+            if (element.elevation != null) finalElev = element.elevation
+            if (element.contentPadding != null) finalPad = element.contentPadding
         }
         Unit
     }
 
-    // Write the full layout modifier into the shared LayoutState
+    // 3. Push the FULL modifier up to NavigationStack
     val layoutState = LocalToolbarLayoutState.current
-    DisposableEffect(layoutState, modifier) {
+    DisposableEffect(layoutState, styleMod) {
         val previous = layoutState?.value
-        layoutState?.value = modifier
+        layoutState?.value = styleMod
         onDispose {
             layoutState?.value = previous
         }
     }
 
+    // 4. Provide locals to children inside the toolbar content
     CompositionLocalProvider(
-        LocalToolbarForeground provides fg,
-        LocalToolbarBackground provides bg,
-        LocalToolbarElevation provides elev,
-        LocalToolbarContentPadding provides paddingDp
+        LocalToolbarForeground provides finalFg,
+        LocalToolbarBackground provides finalBg,
+        LocalToolbarElevation provides finalElev,
+        LocalToolbarContentPadding provides finalPad
     ) {
         content()
     }
 }
 
 // ---------------------------
-// Custom toolbar renderer
+// ✅ THE NEW "RESPECTFUL" RENDERER
 // ---------------------------
 @Composable
 private fun CustomToolbarSurface(
@@ -128,75 +144,93 @@ private fun CustomToolbarSurface(
     navTitle: String?,
     hideBackButton: Boolean
 ) {
-    val fg = LocalToolbarForeground.current
-    val bg = LocalToolbarBackground.current
-    val elev = LocalToolbarElevation.current
-    val paddingFromChild = LocalToolbarContentPadding.current
+    // 1. Resolve Styles
+    var styleFg: Color? = null
+    var styleBg: Color? = null
+    var styleGradient: GradientColor? = null
+    var styleElev: Dp? = null
+    var stylePad: Dp? = null
 
+    modifier.foldIn(Unit) { _, element ->
+        if (element is ToolbarStyleModifier) {
+            styleFg = element.foreground
+            styleBg = element.background
+            styleElev = element.elevation
+            stylePad = element.contentPadding
+        }
+        if (element is ToolbarGradientModifier) {
+            styleGradient = element.gradient
+        }
+        Unit
+    }
+
+    val finalFg = styleFg ?: LocalToolbarForeground.current ?: driftColors.text
+    val finalBg = styleBg ?: LocalToolbarBackground.current ?: MaterialTheme.colorScheme.surface
+    val finalElev = styleElev ?: 0.dp
+    val finalPad = stylePad ?: 12.dp
+
+    // 2. Container (Surface handles Elevation)
     Surface(
-        modifier = modifier,
-        color = bg ?: MaterialTheme.colorScheme.surface,
-        tonalElevation = elev ?: 0.dp,
-        shadowElevation = elev ?: 0.dp
+        modifier = modifier, // Applies user's height/width (e.g. 70dp)
+        // If gradient exists, Surface must be transparent
+        color = if (styleGradient != null) Color.Transparent else finalBg,
+        tonalElevation = finalElev,
+        shadowElevation = finalElev
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(
-                    if (paddingFromChild != null)
-                        Modifier.padding(horizontal = paddingFromChild)
-                    else Modifier.padding(horizontal = 12.dp)
-                ),
-            verticalAlignment = Alignment.CenterVertically
+        // 3. Gradient Layer (Fills the Surface edge-to-edge)
+        Box(
+            modifier = if (styleGradient != null)
+                Modifier.fillMaxSize().background(Brush.linearGradient(styleGradient!!.colors))
+            else Modifier.fillMaxSize()
         ) {
-
-            // LEADING
-            Box(
-                modifier = Modifier.wrapContentWidth(),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                val leading = toolbarItems.firstOrNull { it.placement == ToolbarPlacement.Leading }
-
-                if (leading != null) {
-                    leading.content()
-                } else if (navController.canPop() && !hideBackButton) {
-                    Text(
-                        "< Back",
-                        Modifier
-                            .padding(start = 8.dp)
-                            .onTapGesture { navController.pop() }
-                            .font(system(16, bold))
-                            .foregroundStyle(fg ?: driftColors.text)
-                    )
-                }
-            }
-
-            // CENTER
+            // 4. Layout Layer (Safe Content)
+            // 🚀 MAGIC FIX: statusBarsPadding() pushes CONTENT down, but keeps background up.
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .wrapContentWidth(Alignment.CenterHorizontally),
+                    .fillMaxSize() // Fill the 70dp height
+                    .statusBarsPadding() // Duck under the notch!
+                    .padding(horizontal = finalPad),
                 contentAlignment = Alignment.Center
             ) {
-                if (navTitle != null) {
-                    Text(navTitle, Modifier.font(system(18, semibold)))
-                } else {
-                    toolbarItems.firstOrNull { it.placement == ToolbarPlacement.Center }
-                        ?.content?.invoke()
+
+                // --- LEADING SLOT ---
+                Box(Modifier.align(Alignment.CenterStart)) {
+                    val leading = toolbarItems.firstOrNull { it.placement == ToolbarPlacement.Leading }
+
+                    if (leading != null) {
+                        leading.content()
+                    } else if (navController.canPop() && !hideBackButton) {
+                        Text(
+                            "< Back",
+                            Modifier
+                                .padding(end = 12.dp)
+                                .onTapGesture { navController.pop() }
+                                .font(system(16, medium))
+                                .foregroundStyle(finalFg)
+                        )
+                    }
+                }
+
+                // --- CENTER SLOT ---
+                Box(Modifier.align(Alignment.Center)) {
+                    if (navTitle != null) {
+                        Text(navTitle, Modifier.font(system(18, semibold)).foregroundStyle(finalFg))
+                    } else {
+                        toolbarItems.firstOrNull { it.placement == ToolbarPlacement.Center }?.content?.invoke()
+                    }
+                }
+
+                // --- TRAILING SLOT ---
+                Row(
+                    Modifier.align(Alignment.CenterEnd),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val trailing = toolbarItems.filter { it.placement == ToolbarPlacement.Trailing }
+                    trailing.forEach { it.content() }
                 }
             }
-
-            // TRAILING
-            Row(
-                modifier = Modifier.wrapContentWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val trailing = toolbarItems.filter { it.placement == ToolbarPlacement.Trailing }
-                trailing.forEach { it.content() }
-            }
         }
-
     }
 }
 
@@ -205,7 +239,6 @@ private fun CustomToolbarSurface(
 // Navigation controller
 // ---------------------------
 
-// ✅ UPDATED CONTROLLER TO SUPPORT STACK ENTRY & REPLACEMENT
 class DriftNavController(private val stack: MutableList<StackEntry>) {
 
     // Normal push
@@ -213,7 +246,7 @@ class DriftNavController(private val stack: MutableList<StackEntry>) {
         stack.add(StackEntry(isRoot = false, content = screen))
     }
 
-    // ✅ NEW: Push Replacement (Clears history, sets new Root)
+    // Push Replacement
     fun pushReplacement(screen: @Composable () -> Unit) {
         stack.clear()
         stack.add(StackEntry(isRoot = true, content = screen))
@@ -231,7 +264,6 @@ class DriftNavController(private val stack: MutableList<StackEntry>) {
 
     fun dismiss() = pop()
 
-    // Helper to peek at full entry
     fun currentEntry(): StackEntry? = stack.lastOrNull()
 
     // Compatibility helper
@@ -483,81 +515,30 @@ fun NavigationStack(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    // ✅ CHANGED: Now using StackEntry instead of raw composable lambda
     val navStack = remember { mutableStateListOf<StackEntry>() }
     val navController = remember { DriftNavController(navStack) }
-
     val currentEntry = navController.currentEntry()
-    val toolbarItems = remember { mutableStateListOf<ToolbarEntry>() }
-    val toolbarLayoutState = remember { mutableStateOf<Modifier?>(null) }
 
-
-    LaunchedEffect(currentEntry) {
-        toolbarItems.clear()
-    }
-
-
-    // ✅ AUTO-HANDLE BACK BUTTON
-    // If it's a root replacement -> Exit App. Else -> Go Back.
-    val context = LocalContext.current
-    BackHandler(enabled = navController.canPop()) {
-        if (currentEntry?.isRoot == true) {
-            (context as? Activity)?.finish()
-        } else {
-            navController.pop()
-        }
-    }
-
+    // Lifecycle & Defaults
+    var onAppearAction: (() -> Unit)? = null
+    var onDisappearAction: (() -> Unit)? = null
     var navTitle: String? = null
-    modifier.foldIn(Unit) { _, el ->
-        if (el is NavigationTitleModifier) navTitle = el.title
-        Unit
-    }
-
     var hideBackButton = true
-    modifier.foldIn(Unit) { _, el ->
-        if (el is BackButtonHiddenModifier) hideBackButton = el.hidden
-        Unit
-    }
-
     var overrideScheme: DriftColorScheme? = null
-    modifier.foldIn(Unit) { _, el ->
-        if (el is PreferredColorSchemeModifier) overrideScheme = el.scheme
-        Unit
-    }
-
     var sheetModifier: SheetModifier? = null
-    modifier.foldIn(Unit) { _, el ->
-        if (el is SheetModifier) sheetModifier = el
-        Unit
-    }
-
     var navToolbarFg: Color? = null
     var navToolbarBg: Color? = null
     var navToolbarElev: Dp? = null
     var navToolbarPadding: Dp? = null
-
-
-    // Lifecycle variables to hold the actions
-    var onAppearAction: (() -> Unit)? = null
-    var onDisappearAction: (() -> Unit)? = null
 
     modifier.foldIn(Unit) { _, el ->
         if (el is NavigationTitleModifier) navTitle = el.title
         else if (el is BackButtonHiddenModifier) hideBackButton = el.hidden
         else if (el is PreferredColorSchemeModifier) overrideScheme = el.scheme
         else if (el is SheetModifier) sheetModifier = el
-        else if (el is ToolbarStyleModifier) { /* ... */ }
-
-        // NEW: Extract Lifecycle Actions
         else if (el is LifecycleAppearModifier) onAppearAction = el.action
         else if (el is LifecycleDisappearModifier) onDisappearAction = el.action
-        Unit
-    }
-
-
-    modifier.foldIn(Unit) { _, el ->
-        if (el is ToolbarStyleModifier) {
+        else if (el is ToolbarStyleModifier) {
             if (el.foreground != null) navToolbarFg = el.foreground
             if (el.background != null) navToolbarBg = el.background
             if (el.elevation != null) navToolbarElev = el.elevation
@@ -566,143 +547,93 @@ fun NavigationStack(
         Unit
     }
 
+    val context = LocalContext.current
+    BackHandler(enabled = navController.canPop()) {
+        if (currentEntry?.isRoot == true) (context as? Activity)?.finish() else navController.pop()
+    }
+
     val isDark = when (overrideScheme) {
         DriftColorScheme.Dark -> true
         DriftColorScheme.Light -> false
         null -> isSystemInDarkTheme()
     }
 
-    val colors = if (isDark) {
-        darkColorScheme(
-            primary = Color(0xFF88B4B5),
-            onPrimary = Color.Black,
-            background = Color(0xFF121212),
-            onBackground = Color.White,
-            surface = Color(0xFF1E1E1E),
-        )
-    } else {
-        lightColorScheme(
-            primary = Color(0xFF567779),
-            onPrimary = Color.White,
-            background = Color(0xFFF7F3F5),
-            onBackground = Color.Black,
-            surface = Color.White,
-        )
-    }
+    val colors = if (isDark) darkColorScheme(surface = Color(0xFF1E1E1E)) else lightColorScheme(surface = Color.White)
 
     MaterialTheme(colorScheme = colors) {
         val toolbarItems = remember { mutableStateListOf<ToolbarEntry>() }
         val toolbarLayoutState = remember { mutableStateOf<Modifier?>(null) }
 
-        // Create internal sheet state that syncs with external
-        val internalSheetState = remember {
-            SheetState(
-                isPresented = mutableStateOf(false),
-                content = mutableStateOf(null)
-            )
-        }
+        LaunchedEffect(currentEntry) { toolbarItems.clear() }
 
-        // BIDIRECTIONAL SYNC LOGIC
+        // Sheet Logic
+        val internalSheetState = remember { SheetState(mutableStateOf(false), mutableStateOf(null)) }
         if (sheetModifier != null) {
-            val externalState = sheetModifier.isPresented
-            val externalSetter = externalState.getSetter()
-
-            // --- 1. External → Internal (Sheet is opened/closed by developer action)
-            LaunchedEffect(externalState.value) {
-                internalSheetState.isPresented.value = externalState.value
-                if (externalState.value) {
-                    internalSheetState.content.value = sheetModifier.content
-                }
+            val external = sheetModifier.isPresented
+            val extSet = external.getSetter()
+            LaunchedEffect(external.value) {
+                internalSheetState.isPresented.value = external.value
+                if(external.value) internalSheetState.content.value = sheetModifier.content
             }
-
-            // --- 2. Internal → External (Sheet is dismissed by user swipe/scrim tap)
-            val internalIsPresented by internalSheetState.isPresented
-            LaunchedEffect(internalIsPresented) {
-                if (!internalIsPresented && externalState.value) {
-                    externalSetter(false)
-                }
-            }
+            val internalVal by internalSheetState.isPresented
+            LaunchedEffect(internalVal) { if(!internalVal && external.value) extSet(false) }
         }
 
-        // 3. --- LIFECYCLE HOOKS ---
-        // DisposableEffect runs cleanup (onDispose) before the content leaves the Composition
         DisposableEffect(currentEntry) {
-            // 3a. Run onAppear when the screen *starts* composing
             onAppearAction?.invoke()
-
-            // 3b. Run onDisappear when the screen *leaves* the Composition
-            onDispose {
-                onDisappearAction?.invoke()
-            }
+            onDispose { onDisappearAction?.invoke() }
         }
 
         CompositionLocalProvider(
             LocalToolbarState provides toolbarItems,
             LocalNavController provides navController,
-            LocalToolbarLayoutState provides toolbarLayoutState
+            LocalToolbarLayoutState provides toolbarLayoutState,
+            LocalToolbarForeground provides navToolbarFg,
+            LocalToolbarBackground provides navToolbarBg,
+            LocalToolbarElevation provides navToolbarElev,
+            LocalToolbarContentPadding provides navToolbarPadding
         ) {
-            CompositionLocalProvider(
-                LocalToolbarForeground provides navToolbarFg,
-                LocalToolbarBackground provides navToolbarBg,
-                LocalToolbarElevation provides navToolbarElev,
-                LocalToolbarContentPadding provides navToolbarPadding
+            Column(
+                Modifier.fillMaxSize().windowInsetsPadding(WindowInsets(0,0,0,0))
             ) {
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .windowInsetsPadding(WindowInsets(0, 0, 0, 0))
-                ) {
-                    val shouldShowToolbar = toolbarItems.isNotEmpty() ||
-                            (navController.canPop() && !hideBackButton)
+                // RENDER TOOLBAR
+                // Shows if items exist, OR if a title exists, OR if Navigation exists, OR if user called toolbar() explicitly
+                val shouldShowToolbar = toolbarItems.isNotEmpty() ||
+                        (navTitle != null) ||
+                        (navController.canPop() && !hideBackButton) ||
+                        toolbarLayoutState.value != null
 
-                    if (shouldShowToolbar) {
-                        val layoutModifier = toolbarLayoutState.value ?: Modifier.fillMaxWidth()
-                        CustomToolbarSurface(
-                            modifier = layoutModifier,
-                            navController = navController,
-                            toolbarItems = toolbarItems,
-                            navTitle = navTitle,
-                            hideBackButton = hideBackButton
-                        )
-                    }
+                if (shouldShowToolbar) {
+                    val userMod = toolbarLayoutState.value ?: Modifier
 
-                    Box(Modifier.fillMaxSize()) {
-                        // ✅ RENDER LOGIC UPDATE: Use entry or content()
-                        if (currentEntry == null) content()
-                        else currentEntry.content.invoke()
-                    }
+                    // Force width, but obey user height
+                    val finalMod = userMod.fillMaxWidth()
+
+                    CustomToolbarSurface(
+                        modifier = finalMod,
+                        navController = navController,
+                        toolbarItems = toolbarItems,
+                        navTitle = navTitle,
+                        hideBackButton = hideBackButton
+                    )
+                }
+
+                Box(Modifier.fillMaxSize()) {
+                    if (currentEntry == null) content() else currentEntry.content.invoke()
                 }
             }
         }
-
-        // Render sheet if present
         SheetHost(internalSheetState, sheetModifier)
-
-        DisposableEffect(Unit) {
-            onDispose {
-                toolbarItems.clear()
-                navStack.clear()
-            }
-        }
+        DisposableEffect(Unit) { onDispose { toolbarItems.clear(); navStack.clear() } }
     }
 }
 
 @Composable
-fun useNav(): DriftNavController {
-    return LocalNavController.current
-}
+fun useNav() = LocalNavController.current
 
-class NavigationAction internal constructor(
-    private val state: State<(() -> Unit)?>
-) {
-
-    fun set(action: () -> Unit) {
-        state.set(action)
-    }
-
-    operator fun invoke() {
-        state.value?.invoke()
-    }
+class NavigationAction(private val state: State<(() -> Unit)?>) {
+    fun set(action: () -> Unit) { state.set(action) }
+    operator fun invoke() { state.value?.invoke() }
 }
 
 @Composable
@@ -710,7 +641,3 @@ fun useNavigationAction(): NavigationAction {
     val state = remember { State<(() -> Unit)?>(null) }
     return NavigationAction(state)
 }
-
-
-
-
