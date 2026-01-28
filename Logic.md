@@ -73,4 +73,40 @@
    ```
 
 
-3. By default In driftView useSafeArea = true, you can set it to false to allow the elements/ Views to even fall out of the screen
+3. By default In DriftView useSafeArea = true, you can set it to false to allow the elements/ Views to even fall out of the screen
+
+4. This now works as expected just the fact that you have to use .align instead of .alignment- Using the material3 Text
+   
+```
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.example.driftui.core.DriftView
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+
+@Composable
+fun learning(){
+    DriftView{
+        Text("I am centered", modifier = Modifier.align(Alignment.BottomStart))
+    }
+
+}
+```
+
+5. Just use Row, Column and Box Instead of H,V, ZStacks to natively use Compose Elements.
+
+6. option+cmd+L to format document (to improve view)
+7. main Axis ka alignment hota hai cross axis ka arrangement hota hai.
+8. Use \n for desired text wrapping, and """...""" instead of just double quotes to control how the text is explicitly laid out, then- [.trimMargin or .trimIndent, You can change the margin character if you want! trimMargin(">") would look for > instead of |]
+
+```
+Text("""
+                    |      I am centered but unstyled
+                    |                Hello
+                    |                                       Wow
+                """.trimMargin())
+```
+
+Removed:
+Text
+Padding
