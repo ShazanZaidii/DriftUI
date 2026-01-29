@@ -1,0 +1,228 @@
+@Composable
+fun learning1() {
+    DriftView {
+        Row(Modifier.align(Alignment.Center)) {
+            Column(
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Hi",
+//                    letterSpacing = 12.sp,
+                    style = TextStyle(
+                        color = Color.cyan,
+                        fontSize = 30.sp
+                    ),
+//                    modifier = Modifier.padding(start = 68.dp),
+                )
+//                Spacer(180)
+                Text(
+                    """
+                    |I am centered but unstyled
+                    |                Hello
+                    |                                       Wow
+                """.trimMargin()
+                )
+                Text(text = buildAnnotatedString {
+                    append(" Welcome To ")
+                    withStyle(
+                        SpanStyle(
+                            color = Color.Red,
+                            fontWeight = bold
+                        )
+                    ) { append("DriftUI ") }
+                    append("Where Code Flows ")
+                    withStyle(SpanStyle(color = Color.Blue, fontStyle = FontStyle.Italic)) {
+                        append(
+                            "like water"
+                        )
+                    }
+                }
+                )
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Like",
+                    tint = Color.shazan,
+                    modifier = Modifier.size(49.dp)
+                )
+                Image(
+                    painter = painterResource(id = R.drawable.img),
+                    contentDescription = "Image",
+                    colorFilter = ColorFilter.tint(Color.pink, blendMode = BlendMode.SrcOut)
+                )
+
+                AsyncImage(
+                    model = "https://picsum.photos/110",
+                    contentDescription = "Online Image",
+                    contentScale = ContentScale.Crop,
+                    colorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
+                    modifier = Modifier
+                        .padding(top = 20.dp)
+                        .size(300.dp)
+                        .clip(Circle())
+                )
+
+            }
+        }
+
+
+    }
+
+}
+
+
+//@Composable
+//fun learning() {
+//    val progress = remember { State(0) }
+//    DriftView(useSafeArea = false) {
+//
+//
+//        Box(Modifier.fillMaxSize()) {
+//            //Setting Background
+//            Rectangle(
+//                width = 45,
+//                height = 45,
+//                Modifier
+//                    .fillMaxSize()
+//                    .foregroundStyle(
+//                        Brush.horizontalGradient(
+//                            colors = listOf(
+//                                Color.red.copy(0.1f),
+//                                Color.gray.copy(0.5f),
+//                                Color.white.copy(0.3f)
+//                            )
+//                        )
+//                    )
+//            )
+//
+//            //Content Laid vertically
+//            Box(
+//                Modifier
+//                    .fillMaxSize()
+//                    .statusBarsPadding()
+//
+//            ) {
+//                Row(
+//                    verticalAlignment = Alignment.CenterVertically,
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+//                    modifier = Modifier.padding(start = 10.dp)
+//                ) {
+//                    Icon(
+//                        imageVector = Icons.Default.ChevronLeft,
+//                        contentDescription = "chevron",
+//                        tint = Color.white.copy(0.78f),
+//                        modifier =
+//                            Modifier
+//                                .rotationEffect(-90)
+//                                .size(40.dp)
+//                    )
+//                    Text(
+//                        "Playing From Album",
+//                        style = TextStyle(
+//                            color = Color.white.copy(0.78f),
+//                            fontSize = 22.sp,
+//                            fontWeight = bold
+//                        )
+//                    )
+//                    Spacer()
+//
+//                    Icon(
+//                        imageVector = Icons.AutoMirrored.Default.PlaylistPlay,
+//                        contentDescription = "null",
+//                        tint = Color.white.copy(0.78f),
+//                        modifier =
+//                            Modifier
+//                                .padding(end = 20.dp)
+//                                .size(35.dp)
+//                    )
+//                }
+//
+//                Column(Modifier.padding(top = 150.dp, start = 12.dp)) {
+//                    AsyncImage(
+//                        model = "https://picsum.photos/200",
+//                        contentDescription = null,
+//                        modifier = Modifier
+//                            .size(400.dp)
+//                            .clip(RoundedRectangle(radius = 12))
+//                    )
+//
+//                    Row(Modifier.padding(top = 20.dp)) {
+//                        Text(
+//                            "+",
+//                            style = TextStyle(color = Color.white, fontSize = 38.sp),
+//                            modifier = Modifier.padding(start = 10.dp)
+//                        )
+//                        Spacer()
+//                        Text(
+//                            buildAnnotatedString {
+//                                withStyle(SpanStyle(fontSize = 35.sp)) { append("Chernobyl") }
+//                                withStyle(SpanStyle(fontSize = 15.sp)) { append("\nApalca Blue") }
+//                            },
+//                            style = TextStyle(color = Color.White, fontWeight = bold),
+//                            textAlign = TextAlign.Center
+//                        )
+//                        Spacer()
+//                        Text(
+//                            "...", style = TextStyle(color = Color.white, fontSize = 35.sp),
+//                            modifier = Modifier.padding(end = 10.dp)
+//                        )
+//
+//
+//                    }
+//                    Slider(
+//                        value = progress,
+//                        range = 0..100,
+//                        thickness = 8,
+//                        trackColor = gaugeColor(Color.white.copy(0.09f)),
+//                        fillColor = gaugeColor(Color.white),
+//                        tracker = {
+//                            Circle(
+//                                radius = 9,
+//                                modifier = Modifier
+//                                    .foregroundStyle(Color.White)
+//
+//                            )
+//                        },
+//                        modifier = Modifier.padding(top = 30.dp, start = 10.dp, end = 10.dp)
+//                    )
+//                    Row(verticalAlignment = Alignment.CenterVertically,modifier = Modifier.padding(top = 50.dp, start = 20.dp, end = 20.dp)) {
+//                        Icon(
+//                            imageVector = Icons.Default.Shuffle,
+//                            contentDescription = "shuffle",
+//                            tint = Color.white,
+//                            modifier = Modifier.size(30.dp)
+//                        )
+//                        Spacer()
+//                        Icon(
+//                            imageVector = Icons.Default.SkipPrevious,
+//                            contentDescription = "previous Track",
+//                            tint = Color.white,
+//                            modifier = Modifier.size(70.dp)
+//                        )
+//                        Icon(
+//                            imageVector = Icons.Default.PauseCircleOutline,
+//                            contentDescription = "Pause Track",
+//                            tint = Color.white,
+//                            modifier = Modifier.size(80.dp)
+//                        )
+//                        Icon(
+//                            imageVector = Icons.Default.SkipNext,
+//                            contentDescription = "Next Track",
+//                            tint = Color.white,
+//                            modifier = Modifier.size(70.dp)
+//                        )
+//                        Spacer()
+//                        Icon(
+//                            imageVector = Icons.Default.Loop,
+//                            contentDescription = "Loop Track",
+//                            tint = Color.white,
+//                            modifier = Modifier.size(40.dp)
+//                        )
+//                    }
+//                }
+//
+//            }
+//        }
+//
+//    }
+//}

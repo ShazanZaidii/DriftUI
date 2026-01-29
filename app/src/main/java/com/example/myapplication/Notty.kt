@@ -1,12 +1,12 @@
 package com.example.myapplication
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.driftui.core.DriftView
 import com.example.driftui.core.Notification
 import com.example.driftui.core.Button
 import com.example.driftui.core.Spacer
-import com.example.driftui.core.Text
 import com.example.driftui.core.VStack
 import com.example.driftui.core.bold
 import com.example.driftui.core.font

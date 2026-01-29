@@ -1,14 +1,15 @@
 package com.example.myapplication
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.example.driftui.core.DriftView
 import com.example.driftui.core.VStack
 import com.example.driftui.core.Button
 import com.example.driftui.core.Haptic
-import com.example.driftui.core.Text
 import com.example.driftui.core.haptic
-import com.example.driftui.core.padding
 import com.example.driftui.core.playSound
 import com.example.driftui.core.stopAllSounds
 import com.example.driftui.core.stopSound
@@ -50,13 +51,13 @@ fun play(){
             }
             Button(action = {
                 stopAllSounds()
-            }, Modifier.padding(top = 120)) {
+            }, Modifier.padding(top = 120.dp)) {
                 Text("Stop All Sounds")
             }
 
             Button(action = {
                 haptic(Haptic.Selection)
-            }, Modifier.padding(top = 120)) {
+            }, Modifier.padding(top = 120.dp)) {
                 Text("Haptic1")
             }
 

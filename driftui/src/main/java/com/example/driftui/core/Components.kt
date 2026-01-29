@@ -50,6 +50,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.Canvas as FoundationCanvas // Use alias for standard Canvas
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.consumePositionChange
@@ -69,6 +71,8 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
@@ -76,11 +80,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import kotlin.math.cos
+import androidx.compose.ui.unit.*
+import kotlin.math.*
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.zIndex
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
 // --- CUSTOM IMPORTS ---
 
@@ -316,61 +320,44 @@ fun Arrow(): Shape = ArrowShape
 // ---------------------------------------------------------------------------------------------
 // TEXT & IMAGE
 // ---------------------------------------------------------------------------------------------
-
-@Composable
-fun Text(text: String, modifier: Modifier = Modifier) {
-    var chosenFont: SystemFont? = null
-    var chosenColor: Color.Companion? = null
-
-    // 1. Extract Color/Font from Modifier chain
-    var finalColor = Color.Unspecified
-    modifier.foldIn(Unit) { _, element ->
-        if (element is ForegroundColorModifier) {
-            finalColor = element.color
-        }
-        Unit
-    }
-
-    // 2. Extract Font
-    var fontStyle: SystemFont? = null
-    modifier.foldIn(Unit) { _, element ->
-        if (element is FontModifier) fontStyle = element.font
-        Unit
-    }
-
-    val style = TextStyle(
-        fontSize = fontStyle?.size?.sp ?: TextStyle.Default.fontSize,
-        fontWeight = fontStyle?.weight ?: TextStyle.Default.fontWeight,
-        color = finalColor.takeUnless { it == Color.Unspecified } ?: driftColors.text
-    )
-
-    // 3. Wrap in Box to center content by default
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        MaterialText(
-            text = text,
-            style = style,
-        )
-    }
-}
-
-//@Composable
-//fun Image(
-//    name: String,
-//    modifier: Modifier = Modifier,
-//    contentScale: ContentScale = ContentScale.Fit
-//) {
-//    val ctx = LocalContext.current
-//    val id = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
 //
-//    ComposeImage(
-//        painter = painterResource(id),
-//        contentDescription = null,
-//        modifier = modifier,
-//        contentScale = contentScale
+//@Composable
+//fun Text(text: String, modifier: Modifier = Modifier) {
+//    var chosenFont: SystemFont? = null
+//    var chosenColor: Color.Companion? = null
+//
+//    // 1. Extract Color/Font from Modifier chain
+//    var finalColor = Color.Unspecified
+//    modifier.foldIn(Unit) { _, element ->
+//        if (element is ForegroundColorModifier) {
+//            finalColor = element.color
+//        }
+//        Unit
+//    }
+//
+//    // 2. Extract Font
+//    var fontStyle: SystemFont? = null
+//    modifier.foldIn(Unit) { _, element ->
+//        if (element is FontModifier) fontStyle = element.font
+//        Unit
+//    }
+//
+//    val style = TextStyle(
+//        fontSize = fontStyle?.size?.sp ?: TextStyle.Default.fontSize,
+//        fontWeight = fontStyle?.weight ?: TextStyle.Default.fontWeight,
+//        color = finalColor.takeUnless { it == Color.Unspecified } ?: driftColors.text
 //    )
+//
+//    // 3. Wrap in Box to center content by default
+//    Box(
+//        modifier = modifier,
+//        contentAlignment = Alignment.Center
+//    ) {
+//        MaterialText(
+//            text = text,
+//            style = style,
+//        )
+//    }
 //}
 
 @Composable
@@ -689,7 +676,7 @@ fun ColumnScope.List(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8)
+                .padding(horizontal = 8.dp)
                 .clip(RoundedRectangle(10))
                 .background(driftColors.fieldBackground.copy(alpha = 0.2f)),
             content = content
@@ -706,7 +693,7 @@ fun <T> List(
     rowContent: @Composable (T) -> Unit
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 8),
+        modifier = modifier.fillMaxSize().padding(horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -727,7 +714,7 @@ fun <T> ColumnScope.List(
 ) {
     LazyColumn(
         // FIX: weight(1f, fill = false) allows the list to SHRINK if content is small
-        modifier = modifier.weight(1f, fill = false).fillMaxWidth().padding(horizontal = 8),
+        modifier = modifier.weight(1f, fill = false).fillMaxWidth().padding(horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -889,79 +876,230 @@ fun Toggle(
     }
 }
 
+// ---------------------------------------------------------------------------------------------
+// SLIDER (Interactive LinearGauge + Material Support)
+// ---------------------------------------------------------------------------------------------
+
+/* ---------- SLIDER (Int Range) ---------- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Slider(
     value: Int,
     onValueChange: (Int) -> Unit,
     range: IntRange = 0..100,
-    step: Int = 0,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    step: Int = 0, // <--- NEW PARAMETER
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    tracker: (@Composable () -> Unit)? = null
 ) {
-    // --- READ STYLING FROM MODIFIER CHAIN ---
-    var styleActiveTrack: Color? = null
-    var styleInactiveTrack: Color? = null
-    var styleThumbColor: Color? = null
-    var styleStepColor: Color? = null
-    var styleStepOpacity: Float? = null
+    // LOGIC: If steps are requested, use Material Slider for precise "snapping".
+    // Otherwise, use our custom engine for smooth, gradient-supported sliding.
+    if (step > 0) {
+        // --- MODE A: MATERIAL SLIDER (Stepped) ---
 
-    modifier.foldIn(Unit) { _, el ->
-        if (el is SliderStyleModifier) {
-            styleActiveTrack = el.activeTrackColor ?: styleActiveTrack
-            styleInactiveTrack = el.inactiveTrackColor ?: styleInactiveTrack
-            styleThumbColor = el.thumbColor ?: styleThumbColor
-            styleStepColor = el.stepColor ?: styleStepColor
-            styleStepOpacity = el.stepOpacity ?: styleStepOpacity
+        // 1. Calculate number of ticks (Material expects 'steps' = internal ticks, not interval)
+        val rangeLength = range.last - range.first
+        val stepsCount = if (rangeLength > 0) (rangeLength / step) - 1 else 0
+
+        // 2. Resolve Colors (Material Slider prefers Solid Colors)
+        val activeColor = when (fillColor) {
+            is GaugeColor.Solid -> fillColor.color
+            is GaugeColor.Gradient -> fillColor.gradient.colors.firstOrNull() ?: driftColors.accent
         }
-        Unit
+        val inactiveColor = when (trackColor) {
+            is GaugeColor.Solid -> trackColor.color
+            is GaugeColor.Gradient -> trackColor.gradient.colors.firstOrNull() ?: driftColors.fieldBackground
+        }
+
+        MaterialSlider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.roundToInt()) },
+            valueRange = range.first.toFloat()..range.last.toFloat(),
+            steps = stepsCount,
+            modifier = modifier.fillMaxWidth(),
+            colors = SliderDefaults.colors(
+                activeTrackColor = activeColor,
+                inactiveTrackColor = inactiveColor,
+                thumbColor = activeColor, // Default thumb color if custom tracker fails
+                activeTickColor = activeColor.copy(alpha = 0.5f),
+                inactiveTickColor = inactiveColor.copy(alpha = 0.5f)
+            ),
+            thumb = {
+                // 3. Inject YOUR Custom Tracker here
+                if (tracker != null) {
+                    tracker()
+                } else {
+                    // Fallback to default thumb if no tracker provided
+                    SliderDefaults.Thumb(
+                        interactionSource = remember { MutableInteractionSource() },
+                        colors = SliderDefaults.colors(thumbColor = activeColor)
+                    )
+                }
+            }
+        )
+    } else {
+        // --- MODE B: CUSTOM INTERACTIVE GAUGE (Smooth) ---
+        val progress = normalize(value, range)
+
+        BoxWithConstraints(
+            modifier = modifier
+                .pointerInput(range) {
+                    detectHorizontalDragGestures { change, _ ->
+                        val totalWidth = size.width.toFloat()
+                        val x = change.position.x
+                        val newProgress = (x / totalWidth).coerceIn(0f, 1f)
+
+                        val rangeSpan = range.last - range.first
+                        val newValue = (range.first + (rangeSpan * newProgress)).roundToInt()
+
+                        if (newValue != value) onValueChange(newValue)
+                    }
+                }
+                .pointerInput(range) {
+                    detectTapGestures { offset ->
+                        val totalWidth = size.width.toFloat()
+                        val x = offset.x
+                        val newProgress = (x / totalWidth).coerceIn(0f, 1f)
+
+                        val rangeSpan = range.last - range.first
+                        val newValue = (range.first + (rangeSpan * newProgress)).roundToInt()
+
+                        onValueChange(newValue)
+                    }
+                }
+        ) {
+            RenderLinearGauge(
+                progress = progress,
+                modifier = Modifier.fillMaxWidth(),
+                thickness = thickness.toDp(),
+                trackColor = trackColor,
+                fillColor = fillColor,
+                tracker = tracker
+            )
+        }
     }
-
-    // --- DETERMINE FINAL COLORS AND VALUES ---
-    val finalActiveTrackColor = styleActiveTrack ?: driftColors.accent
-    val finalInactiveTrackColor = styleInactiveTrack ?: driftColors.fieldBackground
-    val finalThumbColor = styleThumbColor ?: driftColors.accent
-    val finalStepColor = styleStepColor ?: styleActiveTrack ?: driftColors.accent // Default step color to active track
-
-    // Apply Opacity to the step color if set
-    val stepsColorWithOpacity = finalStepColor.copy(alpha = styleStepOpacity ?: 0.54f) // Default step opacity is usually 54%
-
-    // --- CONVERSION LOGIC ---
-    val floatValue = value.toFloat()
-    val floatRange = range.first.toFloat()..range.last.toFloat()
-    val stepsCount = if (step > 0) ((range.last - range.first) / step) else 0
-
-    // --- RENDER SLIDER ---
-    MaterialSlider(
-        value = floatValue,
-        onValueChange = { newValue -> onValueChange(newValue.toInt()) },
-        modifier = modifier.fillMaxWidth(),
-        valueRange = floatRange,
-        steps = stepsCount,
-        colors = SliderDefaults.colors(
-            activeTrackColor = finalActiveTrackColor,
-            inactiveTrackColor = finalInactiveTrackColor,
-            thumbColor = finalThumbColor,
-            activeTickColor = stepsColorWithOpacity,
-            inactiveTickColor = stepsColorWithOpacity // Use the same color for both
-        ),
-    )
 }
 
+/* ---------- SLIDER (State<Int> Overload) ---------- */
 @Composable
 fun Slider(
-    value: State<Int>, // RESTORED
-    range: IntRange = 0..100, // Uses standard IntRange
+    value: State<Int>,
+    range: IntRange = 0..100,
+    modifier: Modifier = Modifier,
     step: Int = 0,
-    modifier: Modifier = Modifier
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    tracker: (@Composable () -> Unit)? = null
 ) {
-    // Delegates to the primary implementation using the State<Int> binding
     val b = value.binding()
     Slider(
         value = b.value,
         onValueChange = b.set,
         range = range,
+        modifier = modifier,
         step = step,
-        modifier = modifier
+        thickness = thickness,
+        trackColor = trackColor,
+        fillColor = fillColor,
+        tracker = tracker
     )
+}
+
+/* ---------- SLIDER (Double/Float Range) ---------- */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Slider(
+    value: Number,
+    onValueChange: (Double) -> Unit,
+    range: ClosedFloatingPointRange<Double> = 0.0..1.0,
+    modifier: Modifier = Modifier,
+    step: Double = 0.0, // Double step
+    thickness: Number = 6,
+    trackColor: GaugeColor = gaugeColor(Color.DarkGray),
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    tracker: (@Composable () -> Unit)? = null
+) {
+    if (step > 0.0) {
+        // --- MODE A: MATERIAL SLIDER ---
+        val rangeSpan = range.endInclusive - range.start
+        // Calculate steps count. Ensure we don't divide by zero or get negative.
+        val stepsCount = if (step > 0) ((rangeSpan / step) - 1).toInt().coerceAtLeast(0) else 0
+
+        val activeColor = when (fillColor) {
+            is GaugeColor.Solid -> fillColor.color
+            is GaugeColor.Gradient -> fillColor.gradient.colors.firstOrNull() ?: driftColors.accent
+        }
+        val inactiveColor = when (trackColor) {
+            is GaugeColor.Solid -> trackColor.color
+            is GaugeColor.Gradient -> trackColor.gradient.colors.firstOrNull() ?: driftColors.fieldBackground
+        }
+
+        MaterialSlider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.toDouble()) },
+            valueRange = range.start.toFloat()..range.endInclusive.toFloat(),
+            steps = stepsCount,
+            modifier = modifier.fillMaxWidth(),
+            colors = SliderDefaults.colors(
+                activeTrackColor = activeColor,
+                inactiveTrackColor = inactiveColor,
+                thumbColor = activeColor,
+                activeTickColor = activeColor.copy(alpha = 0.5f),
+                inactiveTickColor = inactiveColor.copy(alpha = 0.5f)
+            ),
+            thumb = {
+                if (tracker != null) {
+                    tracker()
+                } else {
+                    SliderDefaults.Thumb(
+                        interactionSource = remember { MutableInteractionSource() },
+                        colors = SliderDefaults.colors(thumbColor = activeColor)
+                    )
+                }
+            }
+        )
+    } else {
+        // --- MODE B: CUSTOM INTERACTIVE GAUGE ---
+        val progress = normalize(value, range)
+
+        BoxWithConstraints(
+            modifier = modifier
+                .pointerInput(range) {
+                    detectHorizontalDragGestures { change, _ ->
+                        val totalWidth = size.width.toFloat()
+                        val x = change.position.x
+                        val newProgress = (x / totalWidth).coerceIn(0f, 1f)
+
+                        val rangeSpan = range.endInclusive - range.start
+                        val newValue = range.start + (rangeSpan * newProgress)
+                        onValueChange(newValue)
+                    }
+                }
+                .pointerInput(range) {
+                    detectTapGestures { offset ->
+                        val totalWidth = size.width.toFloat()
+                        val x = offset.x
+                        val newProgress = (x / totalWidth).coerceIn(0f, 1f)
+
+                        val rangeSpan = range.endInclusive - range.start
+                        val newValue = range.start + (rangeSpan * newProgress)
+                        onValueChange(newValue)
+                    }
+                }
+        ) {
+            RenderLinearGauge(
+                progress = progress,
+                modifier = Modifier.fillMaxWidth(),
+                thickness = thickness.toDp(),
+                trackColor = trackColor,
+                fillColor = fillColor,
+                tracker = tracker
+            )
+        }
+    }
 }
 
 //ScrollView::
@@ -1352,7 +1490,68 @@ private fun RenderCircularGauge(
 
 /* ---------- LINEAR GAUGE ---------- */
 
-// Double range
+@Composable
+private fun RenderLinearGauge(
+    progress: Float,
+    modifier: Modifier,
+    thickness: Dp,
+    trackColor: GaugeColor,
+    fillColor: GaugeColor,
+    tracker: (@Composable () -> Unit)?
+) {
+    val trackBrush = trackColor.toBrush()
+    val fillBrush = fillColor.toBrush()
+
+    BoxWithConstraints(
+        modifier = modifier,
+        contentAlignment = Alignment.CenterStart // <--- This centers everything vertically for us
+    ) {
+        val totalWidth = constraints.maxWidth.toFloat()
+
+        // 1. The Track
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(thickness)
+                .clip(RoundedCornerShape(thickness / 2))
+                .background(trackBrush)
+        )
+
+        // 2. The Fill
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress)
+                .height(thickness)
+                .clip(RoundedCornerShape(thickness / 2))
+                .background(fillBrush)
+        )
+
+        // 3. The Tracker
+        if (tracker != null) {
+            Layout(
+                content = tracker,
+                modifier = Modifier.zIndex(1f)
+            ) { measurables, constraints ->
+                val placeable = measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+
+                // Calculate X: Exact pixel position
+                val centerX = totalWidth * progress
+                val x = (centerX - (placeable.width / 2)).roundToInt()
+
+                // Calculate Y: 0
+                // Because the PARENT BoxWithConstraints aligns this Layout to CenterStart,
+                // we just need to place the content at the top-left of this Layout's own bounds.
+                val y = 0
+
+                layout(placeable.width, placeable.height) {
+                    placeable.placeRelative(x, y)
+                }
+            }
+        }
+    }
+}
+
+/* ---------- LINEAR GAUGE (Double Range) ---------- */
 @Composable
 fun LinearGauge(
     value: Number,
@@ -1360,26 +1559,21 @@ fun LinearGauge(
     modifier: Modifier = Modifier,
     thickness: Number = 6,
     trackColor: GaugeColor = gaugeColor(Color.DarkGray),
-    fillColor: GaugeColor = gaugeColor(Color.Red)
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    tracker: (@Composable () -> Unit)? = null // <--- NEW PARAMETER
 ) {
-    val progress = normalize(value, range)
-    val thicknessDp = thickness.toDp()
-
-    Box(
-        modifier
-            .height(thicknessDp)
-            .background(trackColor.toBrush(), RoundedCornerShape(thicknessDp / 2))
-    ) {
-        Box(
-            Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(progress)
-                .background(fillColor.toBrush(), RoundedCornerShape(thicknessDp / 2))
-        )
-    }
+    RenderLinearGauge(
+        progress = normalize(value, range),
+        modifier = modifier,
+        thickness = thickness.toDp(),
+        trackColor = trackColor,
+        fillColor = fillColor,
+        tracker = tracker
+    )
 }
 
-// Int range
+
+/* ---------- LINEAR GAUGE (Int Range) ---------- */
 @Composable
 fun LinearGauge(
     value: Number,
@@ -1387,23 +1581,17 @@ fun LinearGauge(
     modifier: Modifier = Modifier,
     thickness: Number = 6,
     trackColor: GaugeColor = gaugeColor(Color.DarkGray),
-    fillColor: GaugeColor = gaugeColor(Color.Red)
+    fillColor: GaugeColor = gaugeColor(Color.Red),
+    tracker: (@Composable () -> Unit)? = null // <--- NEW PARAMETER
 ) {
-    val progress = normalize(value, range)
-    val thicknessDp = thickness.toDp()
-
-    Box(
-        modifier
-            .height(thicknessDp)
-            .background(trackColor.toBrush(), RoundedCornerShape(thicknessDp / 2))
-    ) {
-        Box(
-            Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(progress)
-                .background(fillColor.toBrush(), RoundedCornerShape(thicknessDp / 2))
-        )
-    }
+    RenderLinearGauge(
+        progress = normalize(value, range),
+        modifier = modifier,
+        thickness = thickness.toDp(),
+        trackColor = trackColor,
+        fillColor = fillColor,
+        tracker = tracker
+    )
 }
 
 /* ---------- CIRCULAR GAUGE ---------- */
@@ -1697,74 +1885,5 @@ fun hex(hexString: String): Color {
 //    ) {
 //        content()
 //    }
-//}
 
-@Composable
-fun GlassSurface(
-    modifier: Modifier = Modifier,
-    radius: Number = 24,
-    blur: Number = 20,
-    tint: Color = Color.white.copy(alpha = 0.18f),
-    border: Color = Color.white.copy(alpha = 0.45f),
-    content: @Composable () -> Unit
-) {
-    val shape = RoundedCornerShape(radius.toDp())
-
-    Box(
-        modifier
-            .clip(shape)
-            // 🔹 subtle elevation so glass separates
-            .shadow(
-                elevation = 12.dp,
-                shape = shape,
-                ambientColor = Color.Black.copy(alpha = 0.12f),
-                spotColor = Color.Black.copy(alpha = 0.18f)
-            )
-    ) {
-
-        // BACKDROP BLUR (only meaningful if something exists behind)
-        Box(
-            Modifier
-                .matchParentSize()
-                .background(tint)
-                .blur(blur.toDp())
-        )
-
-        // BORDER (defines the glass edge)
-        Box(
-            Modifier
-                .matchParentSize()
-                .border(1.dp, border, shape)
-        )
-
-        // CONTENT (sharp)
-        Box(
-            Modifier
-                .matchParentSize()
-        ) {
-            content()
-        }
-    }
-}
-
-
-
-@Composable
-fun GlassVessel(
-    content: @Composable () -> Unit
-) {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.white.copy(alpha = 0.45f))
-            .border(
-                1.dp,
-                Color.white.copy(alpha = 0.6f),
-                RoundedCornerShape(16.dp)
-            )
-            .padding(12)
-    ) {
-        content()
-    }
-}
 

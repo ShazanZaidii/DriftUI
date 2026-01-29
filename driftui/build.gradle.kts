@@ -57,16 +57,20 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.22")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
-    implementation ("androidx.activity:activity-compose:1.9.0")
-    implementation ("androidx.core:core-ktx:1.13.0")
+    implementation("androidx.activity:activity-compose:1.9.0")
+    implementation("androidx.core:core-ktx:1.13.0")
 
+    implementation("androidx.navigation:navigation-compose:2.8.5")
+    api("androidx.compose.material:material-icons-extended:1.7.5") // Or your matching compose version
+
+
+    //Coil [For Network images]:
+    api("io.coil-kt:coil-compose:2.5.0")
 
     //Firebase Dependencies-
 
     api(platform("com.google.firebase:firebase-bom:34.7.0"))
     api("com.google.firebase:firebase-firestore-ktx:25.1.1")
-
-
 
 
 }

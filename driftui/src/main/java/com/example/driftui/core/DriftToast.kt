@@ -152,12 +152,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.*
 
@@ -248,7 +251,8 @@ fun Toast(message: String, modifier: Modifier = Modifier) {
 
     DriftToastManager.show(duration, onEnd) {
         ToastContainer(modifier) {
-            Text(message, Modifier.foregroundStyle(Color.white).font(system(14, regular)))
+            Text(message,
+                style = TextStyle(color = Color.white, fontWeight = regular, fontSize = 14.sp))
         }
     }
 }

@@ -36,45 +36,38 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.foundation.layout.padding as composePadding
 
 
-// ---------------------------------------------------------------------------------------------
-// PADDING (Updated to accept Number for responsive scaling)
-// ---------------------------------------------------------------------------------------------
-
-fun Modifier.padding(all: Number): Modifier = this.padding(all, all, all, all)
-
-fun Modifier.padding(horizontal: Number = 0, vertical: Number = 0): Modifier =
-    this.padding(vertical, vertical, horizontal, horizontal)
-
-fun Modifier.padding(
-    top: Number = 0,
-    bottom: Number = 0,
-    leading: Number = 0,
-    trailing: Number = 0
-): Modifier = this.layout { measurable, constraints ->
-    // 1. Convert Number -> Float -> Dp -> Px
-    val topPx = top.toFloat().dp.roundToPx()
-    val bottomPx = bottom.toFloat().dp.roundToPx()
-    val startPx = leading.toFloat().dp.roundToPx()
-    val endPx = trailing.toFloat().dp.roundToPx()
-
-    val horizontalPadding = startPx + endPx
-    val verticalPadding = topPx + bottomPx
-
-    // 2. Adjust Constraints
-    val childConstraints = constraints.offset(-horizontalPadding, -verticalPadding)
-    val placeable = measurable.measure(childConstraints)
-
-    // 3. Calculate Final Size
-    val width = (placeable.width + horizontalPadding).coerceAtLeast(0)
-    val height = (placeable.height + verticalPadding).coerceAtLeast(0)
-
-    layout(width, height) {
-        // 4. Place Content
-        placeable.placeRelative(startPx, topPx)
-    }
-}
+//// ---------------------------------------------------------------------------------------------
+//// PADDING (FIXED: Using Native Implementation)
+//// ---------------------------------------------------------------------------------------------
+//
+//// We use "then" to append the native modifier.
+//// This lets Compose handle the complex measurement logic for us.
+//
+//fun Modifier.padding(all: Number): Modifier =
+//    this.then(Modifier.composePadding(all.toFloat().dp))
+//
+//fun Modifier.padding(horizontal: Number = 0, vertical: Number = 0): Modifier =
+//    this.then(Modifier.composePadding(
+//        horizontal = horizontal.toFloat().dp,
+//        vertical = vertical.toFloat().dp
+//    ))
+//
+//fun Modifier.padding(
+//    top: Number = 0,
+//    bottom: Number = 0,
+//    leading: Number = 0,
+//    trailing: Number = 0
+//): Modifier = this.then(
+//    Modifier.composePadding(
+//        top = top.toFloat().dp,
+//        bottom = bottom.toFloat().dp,
+//        start = leading.toFloat().dp,
+//        end = trailing.toFloat().dp
+//    )
+//)
 // ---------------------------------------------------------------------------------------------
 // BACKGROUND
 // ---------------------------------------------------------------------------------------------
@@ -90,6 +83,12 @@ fun Modifier.background(gradient: GradientColor): Modifier =
             )
         }
     )
+
+fun Modifier.background(
+    brush: Brush,
+    shape: Shape = androidx.compose.ui.graphics.RectangleShape,
+    alpha: Float = 1.0f
+): Modifier = this.then(Modifier.foundationBackground(brush, shape, alpha))
 
 
 
@@ -395,6 +394,14 @@ fun Modifier.foregroundStyle(gradient: GradientColor): Modifier =
         }
     )
 
+// PASTE THIS: Supports Brush directly for text gradients
+fun Modifier.foregroundStyle(brush: Brush): Modifier =
+    this.then(
+        Modifier.drawWithContent {
+            drawContent()
+            drawRect(brush = brush, blendMode = BlendMode.SrcAtop)
+        }
+    )
 fun Modifier.clipShape(shape: Shape): Modifier = this.clip(shape)
 fun Modifier.cornerRadius(radius: Number): Modifier = this.clipShape(RoundedRectangle(radius.toInt()))
 
@@ -405,6 +412,11 @@ fun Modifier.cornerRadius(radius: Number): Modifier = this.clipShape(RoundedRect
 // ---------------------------------------------------------------------------------------------
 
 // Sheet Modifier
+sealed class SheetDetent {
+    object Large : SheetDetent()
+    object Medium : SheetDetent()
+    data class Fraction(val value: Float) : SheetDetent()
+}
 data class SheetModifier(
     val isPresented: State<Boolean>,
     val detents: List<SheetDetent> = listOf(SheetDetent.Large),

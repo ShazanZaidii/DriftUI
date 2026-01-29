@@ -15,6 +15,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.sqrt
+// ... imports ...
+import androidx.compose.material3.* // Import Material3 for Scaffold
+import androidx.compose.foundation.layout.padding as stdPadding
 import androidx.core.util.rangeTo
 
 
@@ -69,7 +72,7 @@ val bottomLeading: Alignment = Alignment.BottomStart
 val bottomTrailing: Alignment = Alignment.BottomEnd
 
 // ---------------------------------------------------------------------------------------------
-// SMART VSTACK & HSTACK
+// SMART VSTACK & HSTACK (Default Fill Max Size)
 // ---------------------------------------------------------------------------------------------
 
 /**
@@ -78,6 +81,7 @@ val bottomTrailing: Alignment = Alignment.BottomEnd
  * 2. Alignment First: VStack(leading) { }
  * 3. 2D/Vertical Overloads
  * * FIX: Now prioritizes Modifier.alignment() over parameters.
+ * * UPDATE: Now uses fillMaxSize() by default.
  */
 
 // 1. MAIN (Modifier First - Default)
@@ -92,18 +96,16 @@ fun VStack(
     val modifierAlign = modifier.getAlignment()
 
     // 2. RESOLVE HORIZONTAL (Cross Axis)
-    // If modifier exists, convert it to Horizontal. If not, use param.
     val horizontalAlignment = modifierAlign?.toHorizontal() ?: alignment
 
     // 3. RESOLVE VERTICAL (Main Axis)
-    // If modifier exists, convert it to Vertical arrangement. If not, default to Top.
     val verticalArrangement = modifierAlign?.toVertical()?.let {
         Arrangement.spacedBy(spacing.dp, it)
     } ?: Arrangement.spacedBy(spacing.dp)
 
     Column(
-        // Force fillMaxWidth so horizontal alignment works
-        modifier = modifier.fillMaxWidth().applyShadowIfNeeded(),
+        // Force fillMaxSize so alignment modifiers work across the whole screen
+        modifier = modifier.fillMaxSize().applyShadowIfNeeded(),
         horizontalAlignment = horizontalAlignment,
         verticalArrangement = verticalArrangement,
         content = content
@@ -119,7 +121,6 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    // Delegate to Main VStack
     VStack(modifier, alignment, spacing, content)
 }
 
@@ -131,18 +132,14 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    // Inject alignment into modifier if not present, then delegate
     val finalMod = if (modifier.getAlignment() == null) modifier.alignment(Alignment.TopCenter) else modifier
-
-    // We manually construct here because passing "Vertical" to "Horizontal" param is tricky
-    // So we use the robust extraction logic directly:
 
     val modifierAlign = finalMod.getAlignment()
     val horizontal = modifierAlign?.toHorizontal() ?: Alignment.CenterHorizontally
     val vertical = (modifierAlign?.toVertical() ?: alignment).let { Arrangement.spacedBy(spacing.dp, it) }
 
     Column(
-        modifier = finalMod.fillMaxWidth().applyShadowIfNeeded(),
+        modifier = finalMod.fillMaxSize().applyShadowIfNeeded(),
         horizontalAlignment = horizontal,
         verticalArrangement = vertical,
         content = content
@@ -158,10 +155,8 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    // Inject alignment into modifier if not present
     val finalMod = if (modifier.getAlignment() == null) modifier.alignment(alignment) else modifier
 
-    // Delegate to Main VStack (it will extract the alignment from the modifier)
     VStack(
         modifier = finalMod,
         spacing = spacing,
@@ -176,11 +171,10 @@ fun Block(
     spacing: Int = 0,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    // A standard column that doesn't force fillMaxWidth()
     androidx.compose.foundation.layout.Column(
-        modifier = modifier, // Allows the block to be centered by a parent VStack
+        modifier = modifier,
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(spacing.dp),
-        horizontalAlignment = androidx.compose.ui.Alignment.Start, // Default to leading text
+        horizontalAlignment = androidx.compose.ui.Alignment.Start,
         content = content
     )
 }
@@ -206,7 +200,7 @@ fun HStack(
     } ?: Arrangement.spacedBy(spacing.dp)
 
     Row(
-        modifier = modifier.applyShadowIfNeeded(),
+        modifier = modifier.fillMaxSize().applyShadowIfNeeded(),
         verticalAlignment = verticalAlignment,
         horizontalArrangement = horizontalArrangement,
         content = content
@@ -234,7 +228,6 @@ fun HStack(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit
 ) {
-    // Inject alignment into modifier if not present
     val finalMod = if (modifier.getAlignment() == null) modifier.alignment(Alignment.CenterStart) else modifier
 
     val modifierAlign = finalMod.getAlignment()
@@ -242,7 +235,7 @@ fun HStack(
     val horizontal = (modifierAlign?.toHorizontal() ?: alignment).let { Arrangement.spacedBy(spacing.dp, it) }
 
     Row(
-        modifier = finalMod.applyShadowIfNeeded(),
+        modifier = finalMod.fillMaxSize().applyShadowIfNeeded(),
         verticalAlignment = vertical,
         horizontalArrangement = horizontal,
         content = content
@@ -260,7 +253,6 @@ fun HStack(
 ) {
     val finalMod = if (modifier.getAlignment() == null) modifier.alignment(alignment) else modifier
 
-    // Delegate to Main HStack
     HStack(
         modifier = finalMod,
         spacing = spacing,
@@ -329,13 +321,12 @@ fun Alignment.toHorizontal(): Alignment.Horizontal {
 fun ZStack(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.Center,
-    content: @Composable BoxScope.() -> Unit // Changed to BoxScope for maximum flexibility
+    content: @Composable BoxScope.() -> Unit
 ) {
-    // 1. ROBUST FIX: Check modifier first. If null, use parameter.
     val effectiveAlignment = modifier.getAlignment() ?: contentAlignment
 
     Box(
-        modifier = modifier.applyShadowIfNeeded(),
+        modifier = modifier.fillMaxSize().applyShadowIfNeeded(),
         contentAlignment = effectiveAlignment,
         content = content
     )
@@ -350,17 +341,25 @@ fun Group(content: @Composable () -> Unit) {
 // ---------------------------------------------------------------------------------------------
 // DRIFTVIEW (Manager + Container)
 // ---------------------------------------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriftView(
-    modifier: Modifier = Modifier,
+    // 1. Structural Slots (Standard Scaffold)
+    topBar: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    floatingAction: @Composable () -> Unit = {},
+
+    // 2. Behavior
     blockBackgroundAudio: Boolean = false,
     useSafeArea: Boolean = true,
+
+    // 3. Main Content
     content: @Composable BoxScope.() -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // --- 1. INITIALIZATION LOGIC (KEPT) ---
+    // --- INITIALIZATION ---
     DriftRegistry.context = context.applicationContext
     DriftGlobals.currentActivity = context as? Activity
     DriftGlobals.applicationContext = context.applicationContext
@@ -383,40 +382,75 @@ fun DriftView(
         }
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE) DriftAudio.onAppPause()
-            else if (event == Lifecycle.Event.ON_RESUME) DriftAudio.onAppResume()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    // --- SCAFFOLDING ---
+    // If useSafeArea is false, we ignore WindowInsets to draw under status/nav bars
+    val windowInsets = if (useSafeArea) ScaffoldDefaults.contentWindowInsets else WindowInsets(0, 0, 0, 0)
 
-    // --- 2. LAYOUT LOGIC ---
-    // Defaults to TopStart (Standard) unless user overrides via Modifier.alignment(...)
-    val effectiveAlignment = modifier.getAlignment() ?: Alignment.TopStart
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(driftColors.background),
-        contentAlignment = effectiveAlignment
-    ) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = topBar,
+        bottomBar = bottomBar,
+        floatingActionButton = floatingAction,
+        contentWindowInsets = windowInsets,
+        containerColor = driftColors.background
+    ) { innerPadding ->
+        // The container that hosts your actual code
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (useSafeArea) Modifier.systemBarsPadding() else Modifier),
-            contentAlignment = effectiveAlignment
+                .stdPadding(innerPadding)
         ) {
             content()
         }
+
         DriftToastHost()
     }
 }
 
+// 1. COLUMN CONTEXT (Vertical Stack)
+// -----------------------------------------------------------
+// "Spacer()" -> Spring (Pushes content to bottom/top)
 @Composable
-fun ColumnScope.Spacer() = Spacer(Modifier.weight(1f))
+fun ColumnScope.Spacer() {
+    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+}
+
+// "Spacer(10)" -> Vertical Gap only (Doesn't affect width)
 @Composable
-fun RowScope.Spacer() = Spacer(Modifier.weight(1f))
+fun ColumnScope.Spacer(size: Int) {
+    androidx.compose.foundation.layout.Spacer(Modifier.height(size.dp))
+}
+
+
+// 2. ROW CONTEXT (Horizontal Stack)
+// -----------------------------------------------------------
+// "Spacer()" -> Spring (Pushes content to left/right)
 @Composable
-fun Spacer(size: Int) = Spacer(Modifier.size(size.dp))
+fun RowScope.Spacer() {
+    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+}
+
+// "Spacer(10)" -> Horizontal Gap only (Doesn't affect height)
+@Composable
+fun RowScope.Spacer(size: Int) {
+    androidx.compose.foundation.layout.Spacer(Modifier.width(size.dp))
+}
+
+
+// 3. BOX/DRIFTVIEW CONTEXT (ZStack)
+// -----------------------------------------------------------
+// "Spacer()" -> Fill (Expands to fill the container, useful for touch targets or pushing)
+@Composable
+fun BoxScope.Spacer() {
+    androidx.compose.foundation.layout.Spacer(Modifier.fillMaxSize())
+}
+
+
+// 4. GLOBAL FALLBACK
+// -----------------------------------------------------------
+// "Spacer(10)" -> Square Gap (Used inside Box or generic contexts)
+@Composable
+fun Spacer(size: Int) {
+    androidx.compose.foundation.layout.Spacer(Modifier.size(size.dp))
+}
+
