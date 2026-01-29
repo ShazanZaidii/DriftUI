@@ -107,6 +107,32 @@ Text("""
                 """.trimMargin())
 ```
 
+9. Texts - Status: Done
+10. Images - Status: Working
+11. Cmd+ Option+ T for wrapping composables with row/ Column or any widget.
+12. Linear Gauges are now robust:
+
+```
+LinearGauge(
+                        value = 20,
+                        range = 0..100,
+                        thickness = 8,
+                        trackColor = gaugeColor(Color.white.copy(0.09f)),
+                        fillColor = gaugeColor(Color.white),
+                        tracker = {
+                            Circle(
+                                radius = 7, // Tracker can be larger than thickness!
+                                modifier = Modifier
+                                    .foregroundStyle(Color.White)
+                                    .shadow(radius = 4, color = Color.Black.copy(0.2f))
+                            )
+                        },
+                        modifier = Modifier.padding(top = 30.dp, start = 10.dp, end = 10.dp)
+                    )
+```
+
+13.
+
 Removed:
 Text
 Padding
