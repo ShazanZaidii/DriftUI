@@ -17,8 +17,13 @@ import androidx.compose.ui.platform.LocalContext
 import kotlin.math.sqrt
 // ... imports ...
 import androidx.compose.material3.* // Import Material3 for Scaffold
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.padding as stdPadding
 import androidx.core.util.rangeTo
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 
 enum class Screen {
@@ -171,10 +176,10 @@ fun Block(
     spacing: Int = 0,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    androidx.compose.foundation.layout.Column(
+    Column(
         modifier = modifier,
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(spacing.dp),
-        horizontalAlignment = androidx.compose.ui.Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(spacing.dp),
+        horizontalAlignment = Alignment.Start,
         content = content
     )
 }
@@ -407,18 +412,68 @@ fun DriftView(
     }
 }
 
+@Composable
+fun DriftSetup(
+    blockBackgroundAudio: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val config = LocalConfiguration.current
+
+    // --- GLOBAL CONTEXT BINDING ---
+    remember {
+        DriftRegistry.context = context.applicationContext
+        DriftGlobals.applicationContext = context.applicationContext
+        DriftGlobals.currentActivity = context as? Activity
+        true
+    }
+
+    // --- SCALING ---
+    remember(config) {
+        DriftScale.widthScale =
+            config.screenWidthDp / DriftScale.REFERENCE_WIDTH
+        DriftScale.heightScale =
+            config.screenHeightDp / DriftScale.REFERENCE_HEIGHT
+        true
+    }
+
+    // --- ONE-TIME INIT ---
+    LaunchedEffect(Unit) {
+        DriftAudio.initialize(context)
+        DriftHaptics.initialize(context)
+        DriftStorage.initialize(context)
+        DriftNotificationEngine.prepareIfNeeded()
+    }
+
+    // --- LIFECYCLE-SCOPED SIDE EFFECTS ---
+    if (blockBackgroundAudio) {
+        DisposableEffect(lifecycleOwner) {
+            DriftAudio.requestSilence(context)
+            onDispose { DriftAudio.releaseSilence(context) }
+        }
+    }
+
+    // --- PASS-THROUGH UI ---
+    content()
+
+    // Optional global overlays
+    DriftToastHost()
+}
+
+
 // 1. COLUMN CONTEXT (Vertical Stack)
 // -----------------------------------------------------------
 // "Spacer()" -> Spring (Pushes content to bottom/top)
 @Composable
 fun ColumnScope.Spacer() {
-    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+    Spacer(Modifier.weight(1f))
 }
 
 // "Spacer(10)" -> Vertical Gap only (Doesn't affect width)
 @Composable
 fun ColumnScope.Spacer(size: Int) {
-    androidx.compose.foundation.layout.Spacer(Modifier.height(size.dp))
+    Spacer(Modifier.height(size.dp))
 }
 
 
@@ -427,13 +482,13 @@ fun ColumnScope.Spacer(size: Int) {
 // "Spacer()" -> Spring (Pushes content to left/right)
 @Composable
 fun RowScope.Spacer() {
-    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+    Spacer(Modifier.weight(1f))
 }
 
 // "Spacer(10)" -> Horizontal Gap only (Doesn't affect height)
 @Composable
 fun RowScope.Spacer(size: Int) {
-    androidx.compose.foundation.layout.Spacer(Modifier.width(size.dp))
+    Spacer(Modifier.width(size.dp))
 }
 
 
@@ -442,7 +497,7 @@ fun RowScope.Spacer(size: Int) {
 // "Spacer()" -> Fill (Expands to fill the container, useful for touch targets or pushing)
 @Composable
 fun BoxScope.Spacer() {
-    androidx.compose.foundation.layout.Spacer(Modifier.fillMaxSize())
+    Spacer(Modifier.fillMaxSize())
 }
 
 
@@ -451,6 +506,6 @@ fun BoxScope.Spacer() {
 // "Spacer(10)" -> Square Gap (Used inside Box or generic contexts)
 @Composable
 fun Spacer(size: Int) {
-    androidx.compose.foundation.layout.Spacer(Modifier.size(size.dp))
+    Spacer(Modifier.size(size.dp))
 }
 
