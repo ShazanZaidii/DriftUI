@@ -134,5 +134,8 @@ LinearGauge(
 13.
 
 Removed:
-Text
-Padding
+* Text
+* Padding
+
+Added:
+* DriftSetup - Use it in MainActivity by wrapping you homeScreen in it. Now you no longer need to manually initialise anything also DreiftView is useless now.
