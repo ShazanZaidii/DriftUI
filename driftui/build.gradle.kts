@@ -60,7 +60,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation("androidx.core:core-ktx:1.13.0")
 
-    implementation("androidx.navigation:navigation-compose:2.8.5")
+    api("androidx.navigation:navigation-compose:2.8.5")
     api("androidx.compose.material:material-icons-extended:1.7.5") // Or your matching compose version
 
 
@@ -83,7 +83,7 @@ afterEvaluate {
 
                 groupId = "com.example"
                 artifactId = "driftui"
-                version = "0.1.118"
+                version = "0.1.122"
             }
         }
     }

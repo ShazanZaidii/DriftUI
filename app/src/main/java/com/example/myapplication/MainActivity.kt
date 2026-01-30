@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,56 +20,40 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.ComposableOpenTarget
+import androidx.compose.ui.text.TextStyle
 import com.example.driftui.core.*
-import com.example.myapplication.learning.learning
+import com.example.myapplication.learning.Learning
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-//        WindowCompat.setDecorFitsSystemWindows(window, true)
         super.onCreate(savedInstanceState)
-        DriftRegistry.initialize(applicationContext)
-        DriftStorage.initialize(applicationContext)
         setContent {
-//                metro()
-//                test7()
+                DriftSetup() {
+                    Learning()
+                }
 
-            learning()
-//            MyScreen()
-        }
-    }}
-
-// In MainActivity.kt
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun hik() {
-    DriftView(
-        // 1. The Top Bar Slot
-        topBar = {
-            // You can use standard TopAppBar here safely now
-            TopAppBar(
-                title = { Text("Drift UI", style = MaterialTheme.typography.titleLarge) },
-
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.shazan // Example: Transparent bar
-                )
-
-            )
-
-        },
-
-        // 2. The FAB Slot
-        floatingAction = {
-            FloatingActionButton(onClick = { /* ... */ }) {
-                Text("+")
-            }
-        }
-    ) {
-        // 3. The Content (Automatically padded & safe)
-        VStack(spacing = 20) {
-            Text("This content is safe from the status bar.")
-            Text("And it doesn't overlap the TopAppBar.")
         }
     }
 }
 
 
+@Composable
+fun Learning2(){
+    Scaffold() {
+        Text("Heloooooooooo")
+
+    }
+
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen() {
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Home") }) }
+    ) { padding ->
+
+    }
+}
