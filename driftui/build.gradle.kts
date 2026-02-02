@@ -36,6 +36,8 @@ android {
 }
 
 dependencies {
+    val voyagerVersion = "1.1.0-beta02"
+
     implementation(platform("androidx.compose:compose-bom:2025.11.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
@@ -72,6 +74,10 @@ dependencies {
     api(platform("com.google.firebase:firebase-bom:34.7.0"))
     api("com.google.firebase:firebase-firestore-ktx:25.1.1")
 
+    //Voyager for navigation
+    api("cafe.adriel.voyager:voyager-navigator:$voyagerVersion")
+    api("cafe.adriel.voyager:voyager-tab-navigator:$voyagerVersion")
+    api("cafe.adriel.voyager:voyager-transitions:$voyagerVersion")
 
 }
 
@@ -83,7 +89,7 @@ afterEvaluate {
 
                 groupId = "com.example"
                 artifactId = "driftui"
-                version = "0.1.122"
+                version = "0.1.138"
             }
         }
     }

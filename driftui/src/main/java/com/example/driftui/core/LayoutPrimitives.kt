@@ -1,5 +1,6 @@
 package com.example.driftui.core
 
+//This file is LayoutPrimitives.kt
 import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,9 +22,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.padding as stdPadding
 import androidx.core.util.rangeTo
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 
 
 enum class Screen {
@@ -110,7 +113,9 @@ fun VStack(
 
     Column(
         // Force fillMaxSize so alignment modifiers work across the whole screen
-        modifier = modifier.fillMaxSize().applyShadowIfNeeded(),
+        modifier = modifier
+            .fillMaxSize()
+            .applyShadowIfNeeded(),
         horizontalAlignment = horizontalAlignment,
         verticalArrangement = verticalArrangement,
         content = content
@@ -137,14 +142,18 @@ fun VStack(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val finalMod = if (modifier.getAlignment() == null) modifier.alignment(Alignment.TopCenter) else modifier
+    val finalMod =
+        if (modifier.getAlignment() == null) modifier.alignment(Alignment.TopCenter) else modifier
 
     val modifierAlign = finalMod.getAlignment()
     val horizontal = modifierAlign?.toHorizontal() ?: Alignment.CenterHorizontally
-    val vertical = (modifierAlign?.toVertical() ?: alignment).let { Arrangement.spacedBy(spacing.dp, it) }
+    val vertical =
+        (modifierAlign?.toVertical() ?: alignment).let { Arrangement.spacedBy(spacing.dp, it) }
 
     Column(
-        modifier = finalMod.fillMaxSize().applyShadowIfNeeded(),
+        modifier = finalMod
+            .fillMaxSize()
+            .applyShadowIfNeeded(),
         horizontalAlignment = horizontal,
         verticalArrangement = vertical,
         content = content
@@ -205,7 +214,9 @@ fun HStack(
     } ?: Arrangement.spacedBy(spacing.dp)
 
     Row(
-        modifier = modifier.fillMaxSize().applyShadowIfNeeded(),
+        modifier = modifier
+            .fillMaxSize()
+            .applyShadowIfNeeded(),
         verticalAlignment = verticalAlignment,
         horizontalArrangement = horizontalArrangement,
         content = content
@@ -233,14 +244,18 @@ fun HStack(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit
 ) {
-    val finalMod = if (modifier.getAlignment() == null) modifier.alignment(Alignment.CenterStart) else modifier
+    val finalMod =
+        if (modifier.getAlignment() == null) modifier.alignment(Alignment.CenterStart) else modifier
 
     val modifierAlign = finalMod.getAlignment()
     val vertical = modifierAlign?.toVertical() ?: Alignment.CenterVertically
-    val horizontal = (modifierAlign?.toHorizontal() ?: alignment).let { Arrangement.spacedBy(spacing.dp, it) }
+    val horizontal =
+        (modifierAlign?.toHorizontal() ?: alignment).let { Arrangement.spacedBy(spacing.dp, it) }
 
     Row(
-        modifier = finalMod.fillMaxSize().applyShadowIfNeeded(),
+        modifier = finalMod
+            .fillMaxSize()
+            .applyShadowIfNeeded(),
         verticalAlignment = vertical,
         horizontalArrangement = horizontal,
         content = content
@@ -264,7 +279,6 @@ fun HStack(
         content = content
     )
 }
-
 
 
 // ---------------------------------------------------------------------------------------------
@@ -302,7 +316,7 @@ fun Alignment.toRowRules(): Pair<Alignment.Vertical, Arrangement.Horizontal> {
 }
 
 fun Alignment.toVertical(): Alignment.Vertical {
-    return when(this) {
+    return when (this) {
         Alignment.TopStart, Alignment.TopCenter, Alignment.TopEnd -> Alignment.Top
         Alignment.BottomStart, Alignment.BottomCenter, Alignment.BottomEnd -> Alignment.Bottom
         else -> Alignment.CenterVertically
@@ -310,7 +324,7 @@ fun Alignment.toVertical(): Alignment.Vertical {
 }
 
 fun Alignment.toHorizontal(): Alignment.Horizontal {
-    return when(this) {
+    return when (this) {
         Alignment.TopStart, Alignment.CenterStart, Alignment.BottomStart -> Alignment.Start
         Alignment.TopEnd, Alignment.CenterEnd, Alignment.BottomEnd -> Alignment.End
         else -> Alignment.CenterHorizontally
@@ -331,7 +345,9 @@ fun ZStack(
     val effectiveAlignment = modifier.getAlignment() ?: contentAlignment
 
     Box(
-        modifier = modifier.fillMaxSize().applyShadowIfNeeded(),
+        modifier = modifier
+            .fillMaxSize()
+            .applyShadowIfNeeded(),
         contentAlignment = effectiveAlignment,
         content = content
     )
@@ -389,7 +405,8 @@ fun DriftView(
 
     // --- SCAFFOLDING ---
     // If useSafeArea is false, we ignore WindowInsets to draw under status/nav bars
-    val windowInsets = if (useSafeArea) ScaffoldDefaults.contentWindowInsets else WindowInsets(0, 0, 0, 0)
+    val windowInsets =
+        if (useSafeArea) ScaffoldDefaults.contentWindowInsets else WindowInsets(0, 0, 0, 0)
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -412,6 +429,8 @@ fun DriftView(
     }
 }
 
+
+
 @Composable
 fun DriftSetup(
     blockBackgroundAudio: Boolean = false,
@@ -421,7 +440,7 @@ fun DriftSetup(
     val lifecycleOwner = LocalLifecycleOwner.current
     val config = LocalConfiguration.current
 
-    // --- GLOBAL CONTEXT BINDING ---
+    // --- INIT ---
     remember {
         DriftRegistry.context = context.applicationContext
         DriftGlobals.applicationContext = context.applicationContext
@@ -429,16 +448,12 @@ fun DriftSetup(
         true
     }
 
-    // --- SCALING ---
     remember(config) {
-        DriftScale.widthScale =
-            config.screenWidthDp / DriftScale.REFERENCE_WIDTH
-        DriftScale.heightScale =
-            config.screenHeightDp / DriftScale.REFERENCE_HEIGHT
+        DriftScale.widthScale = config.screenWidthDp / DriftScale.REFERENCE_WIDTH
+        DriftScale.heightScale = config.screenHeightDp / DriftScale.REFERENCE_HEIGHT
         true
     }
 
-    // --- ONE-TIME INIT ---
     LaunchedEffect(Unit) {
         DriftAudio.initialize(context)
         DriftHaptics.initialize(context)
@@ -446,7 +461,6 @@ fun DriftSetup(
         DriftNotificationEngine.prepareIfNeeded()
     }
 
-    // --- LIFECYCLE-SCOPED SIDE EFFECTS ---
     if (blockBackgroundAudio) {
         DisposableEffect(lifecycleOwner) {
             DriftAudio.requestSilence(context)
@@ -454,12 +468,43 @@ fun DriftSetup(
         }
     }
 
-    // --- PASS-THROUGH UI ---
-    content()
+    val rootOverride = DriftRootHost.rootContent.value
+    val effectiveRoot = rootOverride ?: content
 
-    // Optional global overlays
-    DriftToastHost()
+    DriftNavRoot(effectiveRoot)
 }
+
+@Composable
+private fun DriftNavRoot(root: @Composable () -> Unit) {
+    val navController = rememberNavController()
+    val driftNavController = remember { DriftNavController(navController) }
+
+    CompositionLocalProvider(
+        LocalNavController provides driftNavController
+    ) {
+        NavHost(
+            navController = navController,
+            startDestination = "root"
+        ) {
+            composable("root") {
+                root()
+            }
+
+            // ✅ FIX: Changed from "{id}" to "screen/{id}"
+            // This ensures we parse ONLY the UUID, matching the registry key.
+            composable(
+                route = "screen/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("id")
+                // Now lookup works: "123" matches "123"
+                driftNavController.screenRegistry[id]?.invoke()
+            }
+        }
+        DriftToastHost()
+    }
+}
+
 
 
 // 1. COLUMN CONTEXT (Vertical Stack)
@@ -508,4 +553,3 @@ fun BoxScope.Spacer() {
 fun Spacer(size: Int) {
     Spacer(Modifier.size(size.dp))
 }
-

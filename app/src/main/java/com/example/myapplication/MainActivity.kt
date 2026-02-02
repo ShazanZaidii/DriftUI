@@ -3,57 +3,90 @@ package com.example.myapplication
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
-import com.example.driftui.core.DriftRegistry
-import androidx.compose.material3.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.ComposableOpenTarget
-import androidx.compose.ui.text.TextStyle
-import com.example.driftui.core.*
-import com.example.myapplication.learning.Learning
+// 1. CLEAN IMPORTS (Remove com.example.driftui.*)
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        super.onCreate(null)
         setContent {
-                DriftSetup() {
-                    Learning()
-                }
-
+            // This starts the Voyager system
+            Navigator(HomeScreen())
         }
     }
 }
 
+// ---------------------------------------------------------
+// SCREENS
+// ---------------------------------------------------------
 
-@Composable
-fun Learning2(){
-    Scaffold() {
-        Text("Heloooooooooo")
-
+class HomeScreen : Screen {
+    @Composable
+    override fun Content() {
+        // Just calling the helper composable
+        MySettingsButton()
     }
-
-
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun HomeScreen() {
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Home") }) }
-    ) { padding ->
+class SettingsScreen : Screen {
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    override fun Content() {
+        Scaffold(
+            topBar = { TopAppBar(title = { Text("Settings") }) }
+        ) { padding ->
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("You are on Settings Page")
 
+                // Add a Back Button for clarity
+                val navigator = LocalNavigator.currentOrThrow
+                Button(onClick = { navigator.pop() }) {
+                    Text("Go Back")
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------
+// THE BUTTON (Fixed)
+// ---------------------------------------------------------
+
+@Composable
+fun MySettingsButton() {
+    // 2. FIX: Use Voyager's Navigator, NOT 'useNav()'
+    val navigator = LocalNavigator.currentOrThrow
+
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Button(
+                onClick = {
+                    // 3. DECISION TIME:
+                    // Use .push() if you want to go BACK to Home later.
+                    // Use .replace() if you want Home to be DESTROYED (Exit on back).
+
+                    navigator.replaceAll(SettingsScreen())
+
+                }
+            ) {
+                Text("Go to Settings")
+            }
+        }
     }
 }

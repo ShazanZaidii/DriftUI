@@ -1,150 +1,3 @@
-//package com.example.driftui
-//
-//import androidx.compose.animation.*
-//import androidx.compose.animation.core.tween
-//import androidx.compose.foundation.background
-//import androidx.compose.foundation.layout.*
-//import androidx.compose.foundation.shape.RoundedCornerShape
-//import androidx.compose.runtime.*
-//import androidx.compose.ui.Alignment
-//import androidx.compose.ui.Modifier
-//import androidx.compose.ui.draw.shadow
-//import androidx.compose.ui.graphics.Color
-//import androidx.compose.ui.unit.dp
-//import androidx.compose.ui.zIndex
-//import kotlinx.coroutines.*
-//
-//// =============================================================================================
-//// CUSTOM MODIFIERS
-//// =============================================================================================
-//
-//private data class ToastDurationNode(val seconds: Double) : Modifier.Element
-//private data class ToastOnEndNode(val action: () -> Unit) : Modifier.Element
-//
-//fun Modifier.duration(seconds: Double): Modifier = this.then(ToastDurationNode(seconds))
-//fun Modifier.onEnd(action: () -> Unit): Modifier = this.then(ToastOnEndNode(action))
-//
-//// =============================================================================================
-//// TOAST MANAGER
-//// =============================================================================================
-//
-//object DriftToastManager {
-//    var activeToast by mutableStateOf<(@Composable () -> Unit)?>(null)
-//    private var job: Job? = null
-//    private val scope = CoroutineScope(Dispatchers.Main)
-//
-//    fun show(duration: Double, onEnd: (() -> Unit)? = null, content: @Composable () -> Unit) {
-//        job?.cancel()
-//        activeToast = content
-//        job = scope.launch {
-//            delay((duration * 1000).toLong())
-//            activeToast = null
-//            onEnd?.invoke()
-//        }
-//    }
-//}
-//
-//// =============================================================================================
-//// SHARED CONTAINER (The Fix)
-//// =============================================================================================
-//
-//@Composable
-//private fun ToastContainer(modifier: Modifier, content: @Composable () -> Unit) {
-//    Box(
-//        modifier = Modifier
-//            // 1. Base Shadow (Clip=false avoids artifacts)
-//            .shadow(elevation = 6.dp, shape = RoundedCornerShape(50), clip = false)
-//
-//            // 2. Default Background (Dark Grey)
-//            // We apply this first. If you add .background(Color.Red) in 'modifier',
-//            // it will draw ON TOP of this, effectively replacing it.
-//            .background(Color(0xFF303030).copy(alpha = 0.95f), RoundedCornerShape(50))
-//
-//            // 3. User Modifiers (This is where your Color.Red is applied!)
-//            .then(modifier)
-//
-//            // 4. Default Padding (Inside the shape)
-//            .padding(horizontal = 24.dp, vertical = 12.dp)
-//    ) {
-//        content()
-//    }
-//}
-//
-//// =============================================================================================
-//// THE API
-//// =============================================================================================
-//
-//fun Toast(
-//    message: String,
-//    modifier: Modifier = Modifier
-//) {
-//    var duration = 2.0
-//    var onEnd: (() -> Unit)? = null
-//
-//    modifier.foldIn(Unit) { _, element ->
-//        if (element is ToastDurationNode) duration = element.seconds
-//        if (element is ToastOnEndNode) onEnd = element.action
-//        Unit
-//    }
-//
-//    DriftToastManager.show(duration, onEnd) {
-//        ToastContainer(modifier) {
-//            Text(message, Modifier.foregroundStyle(Color.white).font(system(14, regular)))
-//        }
-//    }
-//}
-//
-//fun Toast(
-//    modifier: Modifier = Modifier,
-//    content: @Composable () -> Unit
-//) {
-//    var duration = 2.0
-//    var onEnd: (() -> Unit)? = null
-//
-//    modifier.foldIn(Unit) { _, element ->
-//        if (element is ToastDurationNode) duration = element.seconds
-//        if (element is ToastOnEndNode) onEnd = element.action
-//        Unit
-//    }
-//
-//    DriftToastManager.show(duration, onEnd) {
-//        // FIXED: Now wrapping custom content in the container too
-//        ToastContainer(modifier) {
-//            content()
-//        }
-//    }
-//}
-//
-//// =============================================================================================
-//// THE HOST
-//// =============================================================================================
-//
-//@Composable
-//fun DriftToastHost() {
-//    val toast = DriftToastManager.activeToast
-//
-//    Box(
-//        Modifier
-//            .fillMaxSize()
-//            .padding(bottom = 60.dp)
-//            .zIndex(100f),
-//        contentAlignment = Alignment.BottomCenter
-//    ) {
-//        AnimatedVisibility(
-//            visible = toast != null,
-//            // Expand In + Shrink Out
-//            enter = fadeIn(tween(300)) + scaleIn(initialScale = 0.8f, animationSpec = tween(300)),
-//            exit = fadeOut(tween(300)) + scaleOut(targetScale = 0.8f, animationSpec = tween(300))
-//        ) {
-//            // Shadow Buffer
-//            Box(Modifier.padding(30.dp)) {
-//                toast?.invoke()
-//            }
-//        }
-//    }
-//}
-
-
 package com.example.driftui.core
 
 import androidx.compose.animation.*
@@ -158,28 +11,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import android.view.HapticFeedbackConstants
 import kotlinx.coroutines.*
 
 // =============================================================================================
-// CUSTOM MODIFIERS (Configuration)
+// ENUMS & NODES
 // =============================================================================================
+
+enum class ToastType {
+    Default, Success, Error, Warning
+}
 
 private data class ToastDurationNode(val seconds: Double) : Modifier.Element
 private data class ToastOnEndNode(val action: () -> Unit) : Modifier.Element
 private data class ToastColorNode(val color: Color) : Modifier.Element
+private data class ToastTextColorNode(val color: Color) : Modifier.Element
+private data class ToastTypeNode(val type: ToastType) : Modifier.Element
 
-/** Sets the duration in seconds (Default: 2.0) */
+// =============================================================================================
+// PUBLIC DSL MODIFIERS
+// =============================================================================================
+
 fun Modifier.duration(seconds: Double): Modifier = this.then(ToastDurationNode(seconds))
-
-/** Runs a block of code when the toast finishes */
 fun Modifier.onEnd(action: () -> Unit): Modifier = this.then(ToastOnEndNode(action))
-
-/** Sets the BASE color of the toast (Replaces the default Dark Grey) */
 fun Modifier.toastColor(color: Color): Modifier = this.then(ToastColorNode(color))
+fun Modifier.textColor(color: Color): Modifier = this.then(ToastTextColorNode(color))
+fun Modifier.type(type: ToastType): Modifier = this.then(ToastTypeNode(type))
 
 // =============================================================================================
 // TOAST MANAGER
@@ -187,11 +49,18 @@ fun Modifier.toastColor(color: Color): Modifier = this.then(ToastColorNode(color
 
 object DriftToastManager {
     var activeToast by mutableStateOf<(@Composable () -> Unit)?>(null)
+    var activeType by mutableStateOf(ToastType.Default)
     private var job: Job? = null
     private val scope = CoroutineScope(Dispatchers.Main)
 
-    fun show(duration: Double, onEnd: (() -> Unit)? = null, content: @Composable () -> Unit) {
+    fun show(
+        duration: Double,
+        type: ToastType = ToastType.Default,
+        onEnd: (() -> Unit)? = null,
+        content: @Composable () -> Unit
+    ) {
         job?.cancel()
+        activeType = type
         activeToast = content
         job = scope.launch {
             delay((duration * 1000).toLong())
@@ -202,33 +71,33 @@ object DriftToastManager {
 }
 
 // =============================================================================================
-// SHARED CONTAINER
+// INTERNAL CONTAINER
 // =============================================================================================
 
 @Composable
 private fun ToastContainer(modifier: Modifier, content: @Composable () -> Unit) {
-    // 1. Set Defaults
-    var baseColor = Color(0xFF303030).copy(alpha = 0.95f) // Default Dark Grey
+    var type = ToastType.Default
+    var customColor: Color? = null
 
-    // 2. Scan Modifiers for Custom Color override
     modifier.foldIn(Unit) { _, element ->
-        if (element is ToastColorNode) baseColor = element.color
+        if (element is ToastTypeNode) type = element.type
+        if (element is ToastColorNode) customColor = element.color
         Unit
+    }
+
+    val baseColor = customColor ?: when (type) {
+        ToastType.Success -> Color(0xFF2E7D32).copy(alpha = 0.95f)
+        ToastType.Error -> Color(0xFFD32F2F).copy(alpha = 0.95f)
+        ToastType.Warning -> Color(0xFFFFA000).copy(alpha = 0.95f)
+        ToastType.Default -> Color(0xFF303030).copy(alpha = 0.95f)
     }
 
     Box(
         modifier = Modifier
-            // Base Shadow
-            .shadow(elevation = 6.dp, shape = RoundedCornerShape(50), clip = false)
-
-            // 3. APPLY BASE COLOR (This is now dynamic!)
+            .shadow(elevation = 8.dp, shape = RoundedCornerShape(50), clip = false)
             .background(baseColor, RoundedCornerShape(50))
-
-            // 4. Apply other user modifiers (padding, offsets, opacity etc.)
-            // Note: If you use .background() here, it will paint ON TOP.
-            // Use .toastColor() to replace the layer above.
+            // We only apply the modifier to the container for things like layout/padding
             .then(modifier)
-
             .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
         content()
@@ -236,23 +105,33 @@ private fun ToastContainer(modifier: Modifier, content: @Composable () -> Unit) 
 }
 
 // =============================================================================================
-// THE API
+// THE END API
 // =============================================================================================
 
 fun Toast(message: String, modifier: Modifier = Modifier) {
     var duration = 2.0
     var onEnd: (() -> Unit)? = null
+    var textCol = Color.White
+    var type = ToastType.Default
 
+    // Scrutinize the modifier for text properties
     modifier.foldIn(Unit) { _, element ->
         if (element is ToastDurationNode) duration = element.seconds
         if (element is ToastOnEndNode) onEnd = element.action
+        if (element is ToastTextColorNode) textCol = element.color
+        if (element is ToastTypeNode) type = element.type
         Unit
     }
 
-    DriftToastManager.show(duration, onEnd) {
+    DriftToastManager.show(duration, type, onEnd) {
         ToastContainer(modifier) {
-            Text(message,
-                style = TextStyle(color = Color.white, fontWeight = regular, fontSize = 14.sp))
+            // DIRECT FIX: Use the standard Material3 Text color parameter
+            // to ensure the DSL custom modifiers aren't being ignored.
+            Text(
+                text = message,
+                color = textCol,
+                style = TextStyle(fontSize = 14.sp)
+            )
         }
     }
 }
@@ -260,14 +139,16 @@ fun Toast(message: String, modifier: Modifier = Modifier) {
 fun Toast(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     var duration = 2.0
     var onEnd: (() -> Unit)? = null
+    var type = ToastType.Default
 
     modifier.foldIn(Unit) { _, element ->
         if (element is ToastDurationNode) duration = element.seconds
         if (element is ToastOnEndNode) onEnd = element.action
+        if (element is ToastTypeNode) type = element.type
         Unit
     }
 
-    DriftToastManager.show(duration, onEnd) {
+    DriftToastManager.show(duration, type, onEnd) {
         ToastContainer(modifier) {
             content()
         }
@@ -281,17 +162,55 @@ fun Toast(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
 @Composable
 fun DriftToastHost() {
     val toast = DriftToastManager.activeToast
+    val type = DriftToastManager.activeType
+    val view = LocalView.current
+
+    // --- SHAKE ANIMATION LOGIC ---
+    val shakeOffset = remember { androidx.compose.animation.core.Animatable(0f) }
+
+    LaunchedEffect(toast) {
+        if (toast != null) {
+            // TRIGGER STRONG HAPTICS
+            when(type) {
+                ToastType.Error -> {
+                    // VIRTUAL_KEY is much stronger than REJECT
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+
+                    // Visual Shake for Error
+                    repeat(4) {
+                        shakeOffset.animateTo(20f, tween(50))
+                        shakeOffset.animateTo(-20f, tween(50))
+                    }
+                    shakeOffset.animateTo(0f, tween(50))
+                }
+                ToastType.Success -> {
+                    // LONG_PRESS is a distinct, heavy pulse
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                }
+                else -> {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                }
+            }
+        }
+    }
 
     Box(
-        Modifier.fillMaxSize().padding(bottom = 60.dp).zIndex(100f),
+        Modifier.fillMaxSize().padding(bottom = 64.dp).zIndex(100f),
         contentAlignment = Alignment.BottomCenter
     ) {
         AnimatedVisibility(
             visible = toast != null,
             enter = fadeIn(tween(300)) + scaleIn(initialScale = 0.8f, animationSpec = tween(300)),
-            exit = fadeOut(tween(300)) + scaleOut(targetScale = 0.8f, animationSpec = tween(300))
+            exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.8f, animationSpec = tween(200))
         ) {
-            Box(Modifier.padding(30.dp)) { toast?.invoke() }
+            Box(
+                Modifier
+                    .padding(32.dp)
+                    // Apply the visual shake offset
+                    .offset(x = shakeOffset.value.dp)
+            ) {
+                toast?.invoke()
+            }
         }
     }
 }

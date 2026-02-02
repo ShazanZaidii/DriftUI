@@ -71,8 +71,10 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
@@ -602,12 +604,16 @@ fun Button(
     modifier: Modifier = Modifier,
     label: @Composable BoxScope.() -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Box(
-        modifier = modifier.applyShadowIfNeeded().clickable(
-            onClick = action,
-            interactionSource = remember { MutableInteractionSource() },
-            indication = null
-        ),
+        modifier = modifier
+            .applyShadowIfNeeded()
+            .clickable(
+                onClick = action,
+                interactionSource = interactionSource,
+                indication = ripple()
+            ),
         contentAlignment = Alignment.Center,
         content = label
     )
