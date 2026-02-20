@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path name="drift_media" path="." />
+    <cache-path name="drift_cache" path="." />
+</paths>

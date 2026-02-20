@@ -322,6 +322,30 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
         }
     }
 
+    fun <V> removeBy(selector: (T) -> V, value: V) {
+        // 1. Find items in memory that match the criteria
+        val targets = items.filter { selector(it) == value }
+        if (targets.isEmpty()) return
+
+        DriftRegistry.ioScope.launch {
+            val db = DriftRegistry.getDb(fileName)
+
+            // 2. Delete each matching item from the DB using its internal ID
+            targets.forEach { item ->
+                val id = DriftRegistry.getId(item)
+                if (id != -1L) {
+                    db.deleteListItem(kClass.simpleName ?: "Data", id)
+                    withContext(Dispatchers.Main) {
+                        syncCallback?.invoke(SyncAction.Delete, item)
+                    }
+                }
+            }
+            // 3. Refresh the list
+            refreshInternal()
+        }
+    }
+
+
     fun removeAll() {
         DriftRegistry.ioScope.launch {
             val db = DriftRegistry.getDb(fileName)

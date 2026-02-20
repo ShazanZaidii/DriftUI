@@ -7,10 +7,14 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 
+enum class LoadState {
+    Loading,
+    Loaded
+}
+
 class FirebaseStore<T : Any>(
     private val collection: String,
     private val model: KClass<T>,
-    // 1. NEW: Optional selector to manually define the ID
     private val explicitSelector: ((T) -> String)? = null
 ) {
 
@@ -18,33 +22,28 @@ class FirebaseStore<T : Any>(
     private val collectionRef = firestore.collection(collection)
 
     private val _items = mutableStateListOf<T>()
-    /**
-     * Live snapshot of the Firestore collection.
-     *
-     * - Always reflects Firestore state
-     * - Backed by Compose state
-     * - Safe to use with Kotlin's filter / map / sorted APIs
-     *
-     * IMPORTANT:
-     * - This is the ONLY source of truth
-     * - All search/filter/sort must be done externally
-     */
     val items: List<T> get() = _items
+
+    private val _loadState = mutableStateOf(LoadState.Loading)
+    val loadState: LoadState get() = _loadState.value
 
     private var listener: ListenerRegistration? = null
 
-    // 2. NEW: Smart logic to determine the ID
+    // Smart ID Selector: Checks for 'uid' first, then 'id'
     private val idGetter: ((T) -> String)? = explicitSelector
         ?: model.memberProperties
-            .find { it.name == "id" }
+            .find { it.name == "uid" || it.name == "id" }
             ?.let { prop -> { item -> prop.get(item).toString() } }
 
-
     fun bind() {
-        if (listener != null) return   // 🔐 prevents duplicate listeners
+        if (listener != null) return
+
+        _loadState.value = LoadState.Loading
 
         listener = collectionRef.addSnapshotListener { snapshot, error ->
-            if (error != null || snapshot == null) return@addSnapshotListener
+            if (error != null || snapshot == null) {
+                return@addSnapshotListener
+            }
 
             val fresh = snapshot.documents.mapNotNull { doc ->
                 doc.data?.let { fromMap(it) }
@@ -52,6 +51,7 @@ class FirebaseStore<T : Any>(
 
             _items.clear()
             _items.addAll(fresh)
+            _loadState.value = LoadState.Loaded
         }
     }
 
@@ -60,72 +60,92 @@ class FirebaseStore<T : Any>(
         listener = null
     }
 
-    @Composable
-    fun collect(): List<T> {
-        return items
+    fun rebind() {
+        unbind()
+        bind()
     }
 
+    @Composable
+    fun collect(): List<T> = items
+
+    @Composable
+    fun state(): Pair<LoadState, List<T>> = loadState to items
+
+    // --- CRUD ---
 
     fun add(item: T) {
         val id = idGetter?.invoke(item)
         if (id != null) {
             collectionRef.document(id).set(toMap(item))
         } else {
-            collectionRef.add(toMap(item)) // Firebase auto-ID
+            collectionRef.add(toMap(item))
         }
     }
-
 
     fun edit(item: T?, transform: T.() -> T) {
         if (item == null || idGetter == null) return
         val updated = item.transform()
-        collectionRef.document(idGetter(item)).set(toMap(updated))
+        val id = idGetter.invoke(item) // Use old ID to find the doc
+        collectionRef.document(id).set(toMap(updated))
     }
-
 
     fun remove(item: T?) {
         if (item == null || idGetter == null) return
         collectionRef.document(idGetter(item)).delete()
     }
 
+    fun updateOptimistically(item: T) {
+        if (idGetter == null) return
+        val id = idGetter.invoke(item)
+        val index = _items.indexOfFirst { idGetter.invoke(it) == id }
+        if (index != -1) {
+            _items[index] = item
+        }
+    }
 
     fun <V> removeBy(prop: (T) -> V, value: V) {
         val targets = _items.filter { prop(it) == value }
         if (targets.isEmpty()) return
 
+        val batch = firestore.batch()
         targets.forEach { item ->
-            val id = idGetter?.invoke(item)
-            if (id != null) {
-                collectionRef.document(id).delete()
+            idGetter?.invoke(item)?.let { id ->
+                batch.delete(collectionRef.document(id))
             }
         }
+        batch.commit()
     }
 
+    fun removeList(itemsToDelete: List<T>) {
+        if (idGetter == null || itemsToDelete.isEmpty()) return
 
-    fun removeAll() {
-        if (idGetter == null) return
-        _items.forEach {
-            collectionRef.document(idGetter(it)).delete()
-        }
-    }
-
-    fun seed(vararg seeds: T, key: (T) -> Any) {
-        collectionRef.get().addOnSuccessListener { snapshot ->
-            val existingKeys = snapshot.documents
-                .mapNotNull { it.data }
-                .map { fromMap(it) }
-                .map(key)
-                .toSet()
-
-            seeds.forEach {
-                if (key(it) !in existingKeys) {
-                    collectionRef.document(key(it).toString()).set(toMap(it))
+        // Batch writes (Max 500 ops per batch)
+        itemsToDelete.chunked(500).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { item ->
+                idGetter.invoke(item).let { id ->
+                    batch.delete(collectionRef.document(id))
                 }
             }
+            batch.commit()
         }
     }
 
-    // 3. UPDATED: Use the smart getter
+    fun removeAll() {
+        if (idGetter == null || _items.isEmpty()) return
+
+        _items.chunked(500).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { item ->
+                idGetter.invoke(item).let { id ->
+                    batch.delete(collectionRef.document(id))
+                }
+            }
+            batch.commit()
+        }
+    }
+
+    // --- REFLECTION HELPERS ---
 
     private fun toMap(obj: T): Map<String, Any?> =
         model.memberProperties.associate { it.name to it.get(obj) }
@@ -135,26 +155,32 @@ class FirebaseStore<T : Any>(
             ?: error("Data class must have primary constructor")
 
         val args = ctor.parameters.mapNotNull { param ->
-            if (map.containsKey(param.name)) {
-                val rawValue = map[param.name]
+            // --- CRITICAL FIX START ---
+            // Try to find the value in the map
+            var rawValue = map[param.name]
 
-                // --- THE FIX STARTS HERE ---
+            // MIGRATION FALLBACK:
+            // If the class expects 'uid' but the map only has 'id' (Old Data), use 'id'.
+            if (rawValue == null && param.name == "uid" && map.containsKey("id")) {
+                rawValue = map["id"]
+            }
+
+            // Only proceed if we found a value (or if we have a fallback)
+            if (rawValue != null) {
                 val typedValue = when {
-                    // 1. If the class expects Int but got a generic Number (like Long), convert it
+                    param.type.classifier == String::class -> rawValue.toString()
                     param.type.classifier == Int::class && rawValue is Number -> rawValue.toInt()
-
-                    // 2. If the class expects Double but got a generic Number, convert it
                     param.type.classifier == Double::class && rawValue is Number -> rawValue.toDouble()
-
-                    // 3. Otherwise, just pass the value as-is (String, Boolean, etc.)
+                    param.type.classifier == Long::class && rawValue is Number -> rawValue.toLong()
                     else -> rawValue
                 }
-                // --- THE FIX ENDS HERE ---
-
                 param to typedValue
             } else {
+                // If value is null, return null so 'mapNotNull' skips this param
+                // This forces Kotlin to use the Default Value defined in the Data Class
                 null
             }
+            // --- CRITICAL FIX END ---
         }.toMap()
 
         return ctor.callBy(args)

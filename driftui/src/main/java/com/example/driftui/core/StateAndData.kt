@@ -10,7 +10,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlin.reflect.KProperty
 import android.content.ContentValues
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -22,6 +21,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import java.util.UUID
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.platform.LocalContext
 
 
 
@@ -246,4 +249,29 @@ class DriftDrawController(private val context: Context) {
         // Once we draw something new, the "Redo" future is invalid
         redoStack.clear()
     }
+}
+
+// --- NEW FUNCTION FOR SHARED DATA ---
+@Composable
+inline fun <reified T : ObservableObject> SharedObject(): T {
+    val context = LocalContext.current
+
+    // Find the MainActivity (Global Parent)
+    val activity = remember(context) {
+        findActivity(context)
+    }
+
+    // Ask the Activity for the ViewModel.
+    // Since the Activity never changes, you always get the SAME instance.
+    return viewModel(activity as ViewModelStoreOwner)
+}
+
+// Helper to find the Activity from any Context
+fun findActivity(context: Context): ComponentActivity {
+    var ctx = context
+    while (ctx is ContextWrapper) {
+        if (ctx is ComponentActivity) return ctx
+        ctx = ctx.baseContext
+    }
+    error("SharedObject must be used inside an Activity")
 }
