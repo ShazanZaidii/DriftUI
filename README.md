@@ -1,171 +1,147 @@
 <h1>Till now it supports: </h1>
-*NOTE: Do not forget to wrap everything in DriftView{} it acts as an initialiser and manager for other blocks. Also by default In driftView useSafeArea = true, you can set it to false to allow the elements/ Views to even fall out of the screen.
+*NOTE: Do not forget to wrap your application root screen in DriftSetup. It acts as an initialiser for all the DriftUI Utilities. 
 
-<h2>1. H,V and ZStacks - Support alignment now!</h2>
-Example:
+<h1> Navigation:</h1>
+# DriftUI Navigation & Layout System
 
-```
+A simple navigation system for Jetpack Compose.
+
+It lets you:
+
+- Start your app with a root screen
+- Push new screens
+- Replace the current screen
+- Reset the app to a new root
+- Check which screen is active
+- Use clean, SwiftUI-style layout primitives
+
+
+---
+
+# Getting Started
+
+Wrap your app with `DriftSetup`.
+
+```kotlin
 @Composable
-fun Test(){
-    DriftView() {
-        VStack(modifier = Modifier.fillMaxSize().alignment(Alignment.Center)) {
-            Text("Hello")
-            Text("Hey")
-        }
+fun App() {
+    DriftSetup {
+        HomeScreen()
     }
 }
 ```
-<h2>2. Paddings Example- Text("hello", Modifier.padding(leading = 20) </br>
-<h2>3. Background & Color</h2>
-<h2>4. Shapes, ClipShape - Remember clipShape should be used before giving a background color</h2>
-<h2>5. Frame</h2>
-<h2>6. font modifier - To use this we need to remove default "import androidx.compose.material3.Text" and add "import com.example.driftui.Text" (if you dont modify)</h2>
-<h1>7. Images (the file shoud be saved in - app -> src -> main -> res -> drawable -> Your image )</h1>
 
-```
-Image("//Image name goes here")
-
-```
-<h1>8. TextField & SecureField(for passwords)</h1> [Use align to adjust to hard left, right or center using -1, 0 and 1. To adjust precise position of text wrt frame use .offset]
-
-```
-// Defining variables
-    var source = State("")
-    var destination = State("")
-
-// Using in TextField and SecureField
-    TextField(
-                "Enter Source",
-                value = source,
-                Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7)
-                    .background(Color.shazan).foregroundStyle(Color.white)
-                    .frame(width= 370, height = 45).align(x = -1, y = 0)
-            )
-
-SecureField(
-                "Enter Destination",
-                value = destination,
-                Modifier.clipShape(RoundedRectangle(radius = 20)).opacity(0.7)
-                    .background(Color.shazan).foregroundStyle(Color.white)
-                    .frame(width= 370, height = 45).align(x = -1, y = 0)
-            )
-
-// Accessing Variables values:
-    Text("Entered text is: ${source.value}")
-    Text("Entered password is: ${destination.value}")
+That’s it. Navigation is now available anywhere inside.
 
 
-```   
-<h1>9. Buttons</h1>
+---
 
-```
-Button(
-                        action = {
-                            username.set("")
-                            password.set("")
-                        },
-                        Modifier
-                            .frame(width = 280, height = 50)
-                            .clipShape(Capsule()) // Clip before background
-                            .background(Color(0xFF567779)) // Using the new Swifty color
-                    ) {
-                        Text("Clear",
-                            Modifier
-                                .foregroundStyle(Color.white) // Using the new Swifty color
-                                .font(system(size = 26, weight = bold))
-                        )
-                    }
+# Using Navigation
+
+Get access to navigation:
+
+```kotlin
+val nav = useNav()
 ```
 
 
+---
 
+# Push a Screen
 
-<h1>10. Divider()</h1>
+Use `push` when you want to go forward and allow going back.
 
-```
-Divider(color = Color.white, thickness = 5)
-```
-
-<h1>11. Lists </h1>
-
-```
-// Simple Implementation:
-List(alignment = center, modifier = Modifier.padding(top = 50)){
-    Text("Hello World")
-    Divider()
-    Text("banana")
-     }
-
-// Using Arrays:
-val food = listOf("Apple", "Banana", "Orange", "Grape")
-List(food, alignment = top, modifier = Modifier.padding(top = 50)) { item ->
-     Text(item, modifier = Modifier.padding(16))
-     }
-
-Or you can also say items = array name as:
-List(items = food, alignment = top, modifier = Modifier.padding(top = 50)) { item ->
-     Text(item, modifier = Modifier.padding(16))
-     }
-
-```
-
-<h1>12. MVVM (For sample refer - https://github.com/ShazanZaidii/DriftUI/tree/main/MVVM%20Implementation )</h1>
-
-<h1>13. NavigationStack and Toolbar</h1>
-
-Implementation:
-<img width="1728" height="1117" alt="Screenshot 2025-11-18 at 10 14 22 PM" src="https://github.com/user-attachments/assets/ed1cbe48-a8b2-4415-b0d6-5cd4fa2f3eac" />
-
-<h1>14. preferredColorScheme:</h1>
-
-```
-NavigationStack(Modifier.preferredColorScheme(lightMode // or DarkMode)){
-//Content here
+```kotlin
+nav.push(tag = "Profile") {
+    ProfileScreen()
 }
 ```
 
-<h1>15. Dismis()-</h1>
-
-```
-val dismiss = Dismiss()
-Button(dismiss) { Text("Dismiss" , Modifier.font(system(size = 28, weight = bold)))}
-```
-
-<h1>16. Toolbar with modifiers -       </h1>
-
-<img width="1728" height="1117" alt="Screenshot 2025-11-20 at 1 44 09 PM" src="https://github.com/user-attachments/assets/0dbb3a48-4e5a-44e0-a403-e0474cee3b9c" />
+User can press back to return.
 
 
-```
-//**Inside OnCreate**- 
-//Set WindowCompat.setDecorFitsSystemWindows(window, true) to make toolbar be pushed below the camera punch and
-// either WindowCompat.setDecorFitsSystemWindows(window, false)  or just remove this line to make status bAr overlay on Top of Toolbar
+---
 
+# Replace the Current Screen
 
+Use `replace` when you don’t want the previous screen kept.
+
+```kotlin
+nav.replace(tag = "Settings") {
+    SettingsScreen()
+}
 ```
 
+This swaps the current screen instead of stacking.
+
+
+---
+
+# Replace the Root Screen
+
+Use `replaceRoot` when you want to reset the app flow.
+
+Example: after login.
+
+```kotlin
+nav.replaceRoot(tag = "Home") {
+    HomeScreen()
+}
 ```
-NavigationStack(Modifier.toolbarStyle(foregroundColor = Color.shazan, backgroundColor = Color.DarkGray)) {
-        DriftView {
-            toolbar(
-                Modifier.toolbarStyle(backgroundColor = Color.yellow)
-                    .frame(width = 450, height = 100)
-                    .clipShape(RoundedRectangle(68))
-            ) {
-                ToolbarItem(placement = ToolbarPlacement.Center) {
-                        Text(
-                            "I am a Toolbar!", Modifier.frame(width = 290)
-                                .padding(top = 38).padding(leading = 55).foregroundStyle(Color.white)
-                                .font(system(size = 26, weight = bold))
-                        )
-                }
-            }
+
+This clears everything above the root.
 
 
-        }
+---
 
-    }
+# Go Back
+
+```kotlin
+nav.pop()
 ```
+
+
+---
+
+# Check Current Screen
+
+You can check which screen is active using its tag:
+
+```kotlin
+if (nav.currentScreenIs("Profile")) {
+    // do something
+}
+```
+
+Tags are optional but recommended.
+
+
+<h1></h1>
+<h1>MVVM</h1> 
+Making a ViewModel:
+
+```
+class ViewModel: ObservableObject(){
+
+    var user by mutableStateOf<UserInfo?>(null)
+    var displayName by  mutableStateOf<String?>(null)
+
+    val isSignedIn = Storage("isSignedIn", false)
+
+
+
+    var userData by mutableStateOf<UserData?>(null)
+
+} 
+```
+
+Using it inside screens-
+
+```
+val vm: ViewModel = SharedObject()
+// Then access variables by doing vm.isSignedIn etc..
+```
+
 
 <h1>17. Toggle: [Can accept modifiers- onColor, offColor, & thumbColor] </h1>
 
@@ -206,12 +182,7 @@ Toggle(value = wifi, Modifier.toggleStyle(onColor = Color.teal, offColor = Color
 
 ```
 
-<h1>19. Opacity:</h1>
-    
-```
-Text("Shazan", Modifier.foregroundStyle(Color.white).font(system(size = 37)).zIndex(1f).padding(top = 90).opacity(0.5))
 
-```
 <h1>20. Sliders:</h1>
 
 ```
@@ -237,89 +208,14 @@ Slider(
 <h1>21. onDoubleTap, onTripleTap, onHold and untilHold (which accepts parameters) -</h1>
 
 ```
-@Composable
-fun LoginScreenView2() {
-    var isHighlighted = State(false)
-    NavigationStack(Modifier.toolbarStyle(foregroundColor = Color.shazan, backgroundColor = Color.shazan).preferredColorScheme(lightMode)) {
-        DriftView {
-            var value = State(0)
-
-                VStack {
-                   Text("Hold Me", Modifier.untilHold(onPress = { isHighlighted.set(true) }, onRelease = {isHighlighted.set(false)}).font(system(size = 48, weight = bold)).foregroundStyle(Color.shazan))
-                    Text("${isHighlighted.value}", Modifier.padding(top = 50))
-                    Slider(value = value, range = 0..100, step = 12,  modifier = Modifier.sliderStyle(stepOpacity = 0.1).rotationEffect(-90).offset(x= 120,y = 180))
-                    Button(action = {isHighlighted.toggle()}) {
-                        Text("Touch Me")
-                    }
-
-                    toolbar(Modifier.frame(height = 110)) {
-                        ToolbarItem(placement = ToolbarPlacement.Center) {
-                            Text("Gesture Control", Modifier.foregroundStyle(Color.white).font(system(size = 28, weight = bold)).padding(top = 55))
-                        }
-                    }
-                }
-
-
-
-        }
-
-    }
-}
-
-```
-<h1>22. Sheets (To control them use a variable toggle dont use dismiss or app will crash)</h1>
-
-```
-@Composable
-fun MyScreen() {
-    val showSheet = State(false)
-
-    NavigationStack(
-        Modifier.sheet(
-            isPresented = showSheet,
-            detents = listOf(0.2, 0.5, 0.95),
-            initialDetent = 0.2,
-            showGrabber = true,
-            cornerRadius = 20,
-            allowDismiss = true
-        ) {
-            // Sheet content
-            VStack(spacing = 20) {
-                Text("Sheet Content", Modifier.font(system(size = 24, weight = bold)))
-                Text("Current state: ${showSheet.value}")
-
-                Button(action = { showSheet.set(false) }, Modifier.offset(x = 160, y = -100)) {
-                    Text("CLOSE X", Modifier.font(system(size = 18)))
-                }
-
-                Text("Swipe down or tap outside to dismiss")
-            }
-        }
-    ) {
-        // Main screen content
-        DriftView {
-            VStack(spacing = 20) {
-                Button(action = { showSheet.toggle() }) {
-                    Text("Show Sheet", Modifier.font(system(size = 28, weight = bold)))
-                }
-
-                if (showSheet.value) {
-                    Text("Sheet is open!", Modifier.padding(top = 20))
-                }
-
-                Text("State: ${showSheet.value}")
-            }
-        }
-    }
-}
-
+                   Text("Hold Me", Modifier.untilHold(onPress = { isHighlighted.set(true) }, onRelease = {isHighlighted.set(false)}))
+                   
+                    
+                
 ```
 
-<h1>23. Border & Shadow Modifiers: [shazan is my custom color] </h1>
 
-RoundedRectangle(width = 50, height = 50, cornerRadius = 8, Modifier.foregroundStyle(color).border(color = Color.shazan, width = 2).shadow(radius = 18, color = Color.yellow))
-
-<h1>24. PenTool 🎉</h1>
+<h1>24. PenTool </h1>
 
 ```
   PenTool(
@@ -354,7 +250,7 @@ EraserTool(
                             .frame(300, 400)
                     )
 ```
-<h1>26. ColorPicker, Undo/Redo, SaveToGallery: [Complete Code]</h1>
+<h1>26. ColorPicker, Undo/Redo, SaveToGallery: [Complete Code]</h1> [Ignore DriftView, VStack, HStack, ZStack or anything UI related, Just focus on what is being demonstrated as i am not in the mood to edit this whole thing out to "now" standards.. So please bare with me.]
 
 ```
 
@@ -514,7 +410,7 @@ var username = Storage(key = "username", defaultValue = "")
 
 ## How To use:
 
-### 1\. Define your Data Model
+### 1. Define your Data Model
 
 Just a standard Kotlin data class. No annotations required.
 
@@ -793,20 +689,19 @@ List(items = sortedList) { station ->
 DriftStorage.initialize(applicationContext)  // Starts SharedPreferences - "Storage" you need this to use Storage variables inside viewModels or classes </br>
 DriftRegistry.initialize(applicationContext) // Starts Advance Persistence Engine (Add this!) </br>
 
-<h2> Push Replacement: [To use when you need to control navigation Stack while being outside of it.. Say from SideMenu ]</h2>
+<h2> Push Replacement: [To use when you need to control navigation Stack while being outside of it.. Say from SideMenu ] </h2>
+
+***Note: SideMenu is no longer used in DriftUI so please just use this for checking out how things work. Ignore everything extra.
 
 ```
 //Define a variable
 val logoutAction = useNavigationAction()
 
-// Inside Navigation Stack
-NavigationStack() {
-            val nav = useNav()
-
-            logoutAction.set {
+val nav = useNav()
+logoutAction.set {
                 nav.pushReplacement { Login() }
             }
-}
+
 
 //Controlling from Side Menu:
 SideMenu(
