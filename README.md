@@ -1032,7 +1032,4 @@ Steps to Use DriftUI:
 4. Import com.example.driftui.core.* in the files you want to use driftui in.
 5. Voila! Happy Journey! 
 
-Project Structure:
-![ss](https://github.com/user-attachments/assets/ce719ab5-02a8-407b-98e2-5cc479a90a9f)
-
 
