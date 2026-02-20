@@ -116,27 +116,55 @@ class DriftNavController(
     private val navController: NavHostController
 ) {
     val screenRegistry = mutableMapOf<String, @Composable () -> Unit>()
+    private val tagRegistry = mutableMapOf<String, String>()
 
-    fun register(id: String, screen: @Composable () -> Unit) {
-        screenRegistry[id] = screen
+    var currentTag by mutableStateOf<String?>(null)
+        private set
+
+    init {
+        // Now listens for the base "root" route as well as "screen/{id}"
+        navController.addOnDestinationChangedListener { _, destination, arguments ->
+            if (destination.route == "root") {
+                currentTag = tagRegistry["root"]
+            } else {
+                val currentId = arguments?.getString("id")
+                currentTag = tagRegistry[currentId]
+            }
+        }
     }
 
-    fun push(screen: @Composable () -> Unit) {
+    // 1. FOR THE INITIAL APP LAUNCH
+    fun setRootTag(tag: String) {
+        tagRegistry["root"] = tag
+        if (currentTag == null) currentTag = tag
+    }
+
+    // 2. UPDATED TO ACCEPT A TAG (And properly clear the backstack)
+    fun replaceRoot(tag: String? = null, screen: @Composable () -> Unit) {
+        DriftRootHost.rootContent.value = screen
+        if (tag != null) {
+            tagRegistry["root"] = tag
+        }
+        // Free architecture win: This ensures if you call replaceRoot from "Profile",
+        // it actually clears the backstack down to the base screen.
+        navController.popBackStack("root", inclusive = false)
+    }
+
+    fun push(tag: String? = null, screen: @Composable () -> Unit) {
         val id = UUID().toString()
         screenRegistry[id] = screen
-        // Matches the "screen/{id}" route in LayoutPrimitives
+        if (tag != null) tagRegistry[id] = tag
         navController.navigate("screen/$id")
     }
 
-    fun replace(screen: @Composable () -> Unit) {
+    fun replace(tag: String? = null, screen: @Composable () -> Unit) {
         val id = UUID().toString()
         screenRegistry[id] = screen
+        if (tag != null) tagRegistry[id] = tag
 
-        // 1. Get the ID of the screen we are standing on right now
         val currentDestinationId = navController.currentDestination?.id
 
         navController.navigate("screen/$id") {
-            // 2. Pop it safely
             if (currentDestinationId != null) {
                 popUpTo(currentDestinationId) { inclusive = true }
             }
@@ -144,40 +172,17 @@ class DriftNavController(
         }
     }
 
-    fun replaceRoot(screen: @Composable () -> Unit) {
-        DriftRootHost.rootContent.value = screen
+    fun pop() = navController.popBackStack()
+
+    fun currentScreenIs(tag: String): Boolean {
+        return currentTag == tag
     }
-
-    fun pop() {
-        navController.popBackStack()
-    }
-
-    fun dismiss() = pop()
-
-    @Composable
-    fun canPopState(): androidx.compose.runtime.State<Boolean> {
-        val entry by navController.currentBackStackEntryAsState()
-        return remember(entry) {
-            derivedStateOf {
-                navController.previousBackStackEntry != null
-            }
-        }
-    }
-
-    fun resolve(id: String?): (@Composable () -> Unit)? = screenRegistry[id]
 }
 
 val LocalNavController = compositionLocalOf<DriftNavController> { error("No NavStack") }
 
 @Composable
 fun useNav() = LocalNavController.current
-
-// ... (Keep Navigation Actions, Dismiss, etc.) ...
-@Composable
-fun Dismiss(): () -> Unit {
-    val nav = LocalNavController.current
-    return remember { { nav.dismiss() } }
-}
 
 class NavigationAction(private val state: MutableState<(() -> Unit)?>) {
     fun set(action: () -> Unit) { state.value = action }
