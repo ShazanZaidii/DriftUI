@@ -45,6 +45,20 @@ val nav = useNav()
 
 
 ---
+<H2>Tags are completely optional, you only need them if you know you will have to query about current screen. Example- 
+if you do -</H2>
+
+```
+nav.push(tag = "Profile") {
+    ProfileScreen()
+}
+```
+
+<H3>Then you can query using:</H3>
+
+```
+// nav.currentScreenIs("Profile"), which returns True or False depending on what the current screen is..
+```
 
 # Push a Screen
 
