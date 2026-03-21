@@ -90,6 +90,9 @@ dependencies {
     api("androidx.credentials:credentials-play-services-auth:1.3.0")
     api("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
+// For DriftUI-IoT:
+    api("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+
 }
 
 
@@ -102,7 +105,7 @@ afterEvaluate {
 
                 groupId = "com.example"
                 artifactId = "driftui"
-                version = "1.4.6"
+                version = "3.1.1"
             }
         }
     }

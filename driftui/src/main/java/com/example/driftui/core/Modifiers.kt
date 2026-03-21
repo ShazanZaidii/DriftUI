@@ -18,6 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.coroutineScope
 import androidx.compose.foundation.border // For the border implementation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.geometry.Offset
 // --- CUSTOM CLASS IMPORTS (for defining modifier elements) ---
 import androidx.compose.ui.Alignment
@@ -27,6 +30,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.offset
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -36,38 +40,24 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.positionChangeIgnoreConsumed
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.abs
 import androidx.compose.foundation.layout.padding as composePadding
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.systemGestureExclusion
+import androidx.compose.ui.composed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 
 
-//// ---------------------------------------------------------------------------------------------
-//// PADDING (FIXED: Using Native Implementation)
-//// ---------------------------------------------------------------------------------------------
-//
-//// We use "then" to append the native modifier.
-//// This lets Compose handle the complex measurement logic for us.
-//
-//fun Modifier.padding(all: Number): Modifier =
-//    this.then(Modifier.composePadding(all.toFloat().dp))
-//
-//fun Modifier.padding(horizontal: Number = 0, vertical: Number = 0): Modifier =
-//    this.then(Modifier.composePadding(
-//        horizontal = horizontal.toFloat().dp,
-//        vertical = vertical.toFloat().dp
-//    ))
-//
-//fun Modifier.padding(
-//    top: Number = 0,
-//    bottom: Number = 0,
-//    leading: Number = 0,
-//    trailing: Number = 0
-//): Modifier = this.then(
-//    Modifier.composePadding(
-//        top = top.toFloat().dp,
-//        bottom = bottom.toFloat().dp,
-//        start = leading.toFloat().dp,
-//        end = trailing.toFloat().dp
-//    )
-//)
+
+
 // ---------------------------------------------------------------------------------------------
 // BACKGROUND
 // ---------------------------------------------------------------------------------------------
@@ -92,35 +82,6 @@ fun Modifier.background(
 
 
 
-// ---------------------------------------------------------------------------------------------
-// FRAME (Uses widthIn and heightIn from foundation.layout)
-// ---------------------------------------------------------------------------------------------
-
-//fun Modifier.frame(
-//    width: Int? = null,
-//    height: Int? = null,
-//    minWidth: Int = 0,
-//    maxWidth: Int? = null,
-//    minHeight: Int = 0,
-//    maxHeight: Int? = null
-//): Modifier {
-//
-//    var m = this
-//
-//    if (width != null) m = m.then(Modifier.width(width.dp))
-//    else m = m.then(Modifier.widthIn(
-//        min = if (minWidth > 0) minWidth.dp else Dp.Unspecified,
-//        max = if (maxWidth != null) maxWidth!!.dp else Dp.Unspecified
-//    ))
-//
-//    if (height != null) m = m.then(Modifier.height(height.dp))
-//    else m = m.then(Modifier.heightIn(
-//        min = if (minHeight > 0) minHeight.dp else Dp.Unspecified,
-//        max = if (maxHeight != null) maxHeight!!.dp else Dp.Unspecified
-//    ))
-//
-//    return m
-//}
 
 // ---------------------------------------------------------------------------------------------
 // FRAME (Updated to support Number: Int, Float, Double)
@@ -666,6 +627,57 @@ fun Modifier.untilHold(
         }
     )
 
+//Swipe Gestures:
+
+fun Modifier.onSwipe(
+    onSwipeLeft: () -> Unit = {},
+    onSwipeRight: () -> Unit = {},
+    onSwipeUp: () -> Unit = {},
+    onSwipeDown: () -> Unit = {},
+    threshold: Float = 60f
+): Modifier = this.pointerInput(Unit) {
+
+    var totalX = 0f
+    var totalY = 0f
+    var directionLocked = false
+
+    detectDragGestures(
+        onDrag = { change, dragAmount ->
+            change.consume()
+
+            totalX += dragAmount.x
+            totalY += dragAmount.y
+
+            if (!directionLocked) {
+                val absX = kotlin.math.abs(totalX)
+                val absY = kotlin.math.abs(totalY)
+
+                if (absX > threshold || absY > threshold) {
+                    directionLocked = true
+
+                    if (absX > absY) {
+                        if (totalX > 0) onSwipeRight()
+                        else onSwipeLeft()
+                    } else {
+                        if (totalY > 0) onSwipeDown()
+                        else onSwipeUp()
+                    }
+                }
+            }
+        },
+        onDragEnd = {
+            totalX = 0f
+            totalY = 0f
+            directionLocked = false
+        },
+        onDragCancel = {
+            totalX = 0f
+            totalY = 0f
+            directionLocked = false
+        }
+    )
+}
+
 //Pen Tool:
 data class DrawModifier(val onDraw: (Offset) -> Unit) : Modifier.Element
 data class DrawEndModifier(val onEnd: () -> Unit) : Modifier.Element
@@ -721,10 +733,6 @@ fun Modifier.placeholderStyle(
 data class ToolbarGradientModifier(
     val gradient: GradientColor
 ) : Modifier.Element
-
-//Changes:
-
-
 
 class GradientColor internal constructor(
     val colors: List<Color>
