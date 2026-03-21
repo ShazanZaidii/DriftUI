@@ -20,15 +20,14 @@ It lets you:
 
 # Getting Started
 
-Wrap your app with `DriftSetup`.
+Wrap your Home Screen in `DriftSetup`.
 
 ```kotlin
-@Composable
-fun App() {
-    DriftSetup {
-        HomeScreen()
-    }
-}
+setContent {
+            DriftSetup {
+                HomeScreen()
+            }
+        }
 ```
 
 That’s it. Navigation is now available anywhere inside.
