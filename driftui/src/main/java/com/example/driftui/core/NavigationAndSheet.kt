@@ -68,6 +68,7 @@ class DriftNavController(
         navController.popBackStack("root", inclusive = false)
     }
 
+    // pushes a new screen dynamically, tags are completely optional
     fun push(tag: String? = null, screen: @Composable () -> Unit) {
         val id = UUID().toString()
         screenRegistry[id] = screen
@@ -75,6 +76,7 @@ class DriftNavController(
         navController.navigate("screen/$id")
     }
 
+    // replaces current screen dynamically
     fun replace(tag: String? = null, screen: @Composable () -> Unit) {
         val id = UUID().toString()
         screenRegistry[id] = screen

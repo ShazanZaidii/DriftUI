@@ -2,6 +2,8 @@ package com.example.driftui.core
 
 // layout primitives
 import android.app.Activity
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
@@ -77,6 +79,7 @@ fun Group(content: @Composable () -> Unit) {
 }
 
 // drift setup
+@RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun DriftSetup(
     blockBackgroundAudio: Boolean = false,
@@ -142,7 +145,16 @@ private fun DriftNavRoot(root: @Composable () -> Unit) {
                 arguments = listOf(navArgument("id") { type = NavType.StringType })
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("id")
-                driftNavController.screenRegistry[id]?.invoke()
+                val screen = driftNavController.screenRegistry[id]
+
+                if (screen != null) {
+                    screen()
+                } else {
+                    // process death fallback: silently route back to root
+                    LaunchedEffect(Unit) {
+                        navController.popBackStack("root", inclusive = false)
+                    }
+                }
             }
         }
         DriftToastHost()

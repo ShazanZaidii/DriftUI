@@ -1,29 +1,31 @@
 package com.example.driftui.core
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URL
 import java.util.Locale
 import kotlin.math.min
 
-// entry point for reading json files from assets or url
-fun readJson(source: String): DriftJson {
+// Entry point for reading JSON files from assets or url
+//Call this inside a LaunchedEffect or a CoroutineScope when loading data
+suspend fun readJson(source: String): DriftJson = withContext(Dispatchers.IO) {
     val context = DriftRegistry.context
-        ?: throw IllegalStateException("DriftUI not initialized. Call DriftView or DriftStorage first.")
+        ?: throw IllegalStateException("DriftUI not initialized. Call DriftSetup first.")
 
     val rawString = try {
         if (source.startsWith("http")) {
-            // url calls should ideally be suspended but blocking is allowed here for simplicity
             URL(source).readText()
         } else {
             context.assets.open(source).bufferedReader().use { it.readText() }
         }
     } catch (e: Exception) { "{}" }
 
-    return DriftJson.parse(rawString)
+    DriftJson.parse(rawString)
 }
 
-// chainable wrapper for parsing and navigating json structures
+// chainable wrapper for parsing and navigating JSON structures
 class DriftJson(private val element: Any?) : Iterable<DriftJson> {
 
     companion object {
@@ -76,7 +78,7 @@ class DriftJson(private val element: Any?) : Iterable<DriftJson> {
                 override fun hasNext(): Boolean = index < element.length()
                 override fun next(): DriftJson = DriftJson(element.get(index++))
             }
-            // treats json object values as a list during iteration
+            // treats JSON object values as a list during iteration
             is JSONObject -> object : Iterator<DriftJson> {
                 val keys = element.keys()
                 override fun hasNext(): Boolean = keys.hasNext()
