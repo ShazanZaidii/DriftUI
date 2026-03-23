@@ -7,6 +7,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.delay
 
+// time extension helpers
 val Int.milliseconds: Long get() = this.toLong()
 val Int.seconds: Long get() = this * 1000L
 val Int.minutes: Long get() = this * 60_000L
@@ -23,22 +24,19 @@ fun onActiveSession(
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentAction by rememberUpdatedState(action)
 
-    // 1. DATA LOADED TRIGGER (Restart when key changes)
-    // This handles the "I just logged in" or "App just opened" logic.
-    // It STOPS running if alwaysLaunchAtLogin is false.
+    // trigger on data load or key change
     LaunchedEffect(key) {
         if (alwaysLaunchAtLogin && lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-            Log.d("DriftHeartbeat", "⚡ Trigger: Data Loaded / Key Changed")
+            Log.d("DriftHeartbeat", "Trigger: Data Loaded or Key Changed")
             currentAction()
         }
     }
 
-    // 2. APP RESUME TRIGGER
-    // This handles minimizing and reopening the app.
+    // trigger on app resume
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME && alwaysLaunchAtLogin) {
-                Log.d("DriftHeartbeat", "⚡ Trigger: App Resumed")
+                Log.d("DriftHeartbeat", "Trigger: App Resumed")
                 currentAction()
             }
         }
@@ -46,21 +44,16 @@ fun onActiveSession(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // 3. PERIODIC TIMER (IMMORTAL)
-    // CRITICAL FIX: The key is 'Unit'. This means the timer NEVER resets
-    // even if the user updates or the database refreshes.
+    // immortal periodic timer
     LaunchedEffect(Unit) {
-        Log.d("DriftHeartbeat", "⏰ Timer Started: Loop initialized")
+        Log.d("DriftHeartbeat", "Timer Started: Loop initialized")
         while (true) {
-            // Wait first
             delay(delay)
-
-            // Check if app is alive
             if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                Log.d("DriftHeartbeat", "⏰ Trigger: Timer Fired")
+                Log.d("DriftHeartbeat", "Trigger: Timer Fired")
                 currentAction()
             } else {
-                Log.d("DriftHeartbeat", "💤 Timer Skipped: App Backgrounded")
+                Log.d("DriftHeartbeat", "Timer Skipped: App Backgrounded")
             }
         }
     }

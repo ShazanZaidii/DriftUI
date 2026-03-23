@@ -71,7 +71,7 @@ class FirebaseStore<T : Any>(
     @Composable
     fun state(): Pair<LoadState, List<T>> = loadState to items
 
-    // --- CRUD ---
+    // Crud-
 
     fun add(item: T) {
         val id = idGetter?.invoke(item)
@@ -145,7 +145,6 @@ class FirebaseStore<T : Any>(
         }
     }
 
-    // --- REFLECTION HELPERS ---
 
     private fun toMap(obj: T): Map<String, Any?> =
         model.memberProperties.associate { it.name to it.get(obj) }
@@ -176,11 +175,9 @@ class FirebaseStore<T : Any>(
                 }
                 param to typedValue
             } else {
-                // If value is null, return null so 'mapNotNull' skips this param
-                // This forces Kotlin to use the Default Value defined in the Data Class
+                // If value is null use the Default Value defined in the Data Class
                 null
             }
-            // --- CRITICAL FIX END ---
         }.toMap()
 
         return ctor.callBy(args)

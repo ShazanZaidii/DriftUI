@@ -68,7 +68,7 @@ object Board {
         }
     }
 
-    // --- HYBRID API (Imperative Command + Declarative State) ---
+    // hybrid api for imperative commands and declarative state
 
     fun digitalWrite(pin: Int, state: PinState = PinState.LOW): MutableState<PinState> {
         val initialPayload = JSONObject().apply {
@@ -152,7 +152,7 @@ object Board {
         }
     }
 
-    // NEW: Flushes the hardware task queue for a specific pin
+    // flushes the hardware task queue for a specific pin
     fun flush(pin: Int) {
         val payload = JSONObject().apply {
             put("action", "flush")
@@ -180,7 +180,7 @@ object Board {
         }.start()
     }
 
-    // --- SYNCHRONIZED EXECUTION BLOCK ---
+    // synchronized execution block
 
     class SyncBlock {
         val operations = org.json.JSONArray()

@@ -17,22 +17,18 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.isAccessible
-
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 
-// =============================================================================================
-// OPTIMIZATION: SCHEMA CACHE & IDENTITY REFLECTION
-// =============================================================================================
-
+// Cache reflection data to optimize database operations
 private object SchemaCache {
     private val cache = Collections.synchronizedMap(mutableMapOf<KClass<*>, SchemaData>())
 
     data class SchemaData(
         val allProps: List<KProperty1<*, *>>,
-        val idProp: KMutableProperty1<Any, *>? // Mutable ID property if it exists
+        val idProp: KMutableProperty1<Any, *>?
     )
 
     fun <T : Any> get(kClass: KClass<T>): SchemaData {
@@ -46,20 +42,13 @@ private object SchemaCache {
     }
 }
 
-// =============================================================================================
-// TYPES & ENUMS
-// =============================================================================================
-
 enum class Order { Ascending, Descending }
 data class SortRule(val property: String, val order: Order)
 enum class SyncAction { Insert, Update, Delete }
 
 fun <T> Sort(prop: KProperty1<T, *>, order: Order = Order.Ascending) = SortRule(prop.name, order)
 
-// =============================================================================================
-// THE REGISTRY (HYBRID STORAGE)
-// =============================================================================================
-
+// Manages global database connections and object identity
 object DriftRegistry {
     val sourceMap = WeakHashMap<Any, String>()
     val idMap = WeakHashMap<Any, Long>()
@@ -69,13 +58,12 @@ object DriftRegistry {
     private val dbCache = mutableMapOf<String, DriftDatabaseHelper>()
     var context: Context? = null
 
-    // FIX 1: Initialize function for MainActivity
     fun initialize(ctx: Context) {
         this.context = ctx.applicationContext
     }
 
     fun getDb(name: String): DriftDatabaseHelper {
-        val ctx = context ?: throw IllegalStateException("DriftContext not initialized! Call DriftRegistry.initialize(context) in MainActivity.")
+        val ctx = context ?: throw IllegalStateException("DriftContext not initialized Call DriftRegistry initialize in MainActivity")
         return dbCache.getOrPut(name) { DriftDatabaseHelper(ctx, name) }
     }
 
@@ -104,11 +92,7 @@ object DriftRegistry {
     }
 }
 
-// =============================================================================================
-// API 1: SINGLETON MODE
-// =============================================================================================
-
-// 1. COMPOSABLE VERSION (Global)
+// Global composable store
 @Composable
 inline fun <reified T : Any> DriftStore(fileName: String, default: T): MutableState<T> {
     val context = LocalContext.current
@@ -132,9 +116,9 @@ inline fun <reified T : Any> DriftStore(fileName: String, default: T): MutableSt
     return state
 }
 
-// 2. VIEWMODEL EXTENSION (Scoped to ViewModel - Fixes Ambiguity)
+// ViewModel scoped store
 inline fun <reified T : Any> ViewModel.DriftStore(fileName: String, default: T): MutableState<T> {
-    if (DriftRegistry.context == null) throw IllegalStateException("Call DriftRegistry.initialize(context) in MainActivity first.")
+    if (DriftRegistry.context == null) throw IllegalStateException("Call DriftRegistry initialize in MainActivity first")
 
     val state = mutableStateOf(default, policy = neverEqualPolicy())
     DriftRegistry.sourceMap[state] = fileName
@@ -180,11 +164,7 @@ fun <T : Any> MutableState<T>.set(newValue: T) {
     }
 }
 
-// =============================================================================================
-// API 2: COLLECTION MODE
-// =============================================================================================
-
-// 1. COMPOSABLE VERSION (Global)
+// Global composable store for collections
 @Composable
 fun <T : Any> DriftStore(fileName: String, kClass: KClass<T>): DriftListController<T> {
     val context = LocalContext.current
@@ -202,9 +182,9 @@ fun <T : Any> DriftStore(fileName: String, kClass: KClass<T>): DriftListControll
     return controller
 }
 
-// 2. VIEWMODEL EXTENSION (Scoped to ViewModel - Fixes Ambiguity)
+// ViewModel scoped store for collections
 fun <T : Any> ViewModel.DriftStore(fileName: String, kClass: KClass<T>): DriftListController<T> {
-    if (DriftRegistry.context == null) throw IllegalStateException("Call DriftRegistry.initialize(context) in MainActivity first.")
+    if (DriftRegistry.context == null) throw IllegalStateException("Call DriftRegistry initialize in MainActivity first")
 
     val controller = DriftListController(fileName, kClass)
 
@@ -238,23 +218,18 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
         }
     }
 
-    // --- NEW: THE MAGIC SEEDER ---
-    // Automatically ensures DB exists, checks duplicates, and inserts in one go.
+    // Seeds the database with initial data avoiding duplicates
     fun seed(vararg items: T, uniqueBy: (T) -> Any) {
         DriftRegistry.ioScope.launch {
             val db = DriftRegistry.getDb(fileName)
 
-            // 1. Safety Check: Ensure table exists (Blocking call in background thread)
             db.ensureTableFromClass(kClass, isList = true)
 
-            // 2. Read Existing
             val current = db.readList(kClass.simpleName ?: "Data", kClass)
             val existingKeys = current.map(uniqueBy).toSet()
 
-            // 3. Filter out items that already exist
             val toAdd = items.filter { uniqueBy(it) !in existingKeys }
 
-            // 4. Batch Insert
             if (toAdd.isNotEmpty()) {
                 db.batchInsert(kClass.simpleName ?: "Data", toAdd)
                 refreshInternal()
@@ -323,14 +298,12 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
     }
 
     fun <V> removeBy(selector: (T) -> V, value: V) {
-        // 1. Find items in memory that match the criteria
         val targets = items.filter { selector(it) == value }
         if (targets.isEmpty()) return
 
         DriftRegistry.ioScope.launch {
             val db = DriftRegistry.getDb(fileName)
 
-            // 2. Delete each matching item from the DB using its internal ID
             targets.forEach { item ->
                 val id = DriftRegistry.getId(item)
                 if (id != -1L) {
@@ -340,11 +313,9 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
                     }
                 }
             }
-            // 3. Refresh the list
             refreshInternal()
         }
     }
-
 
     fun removeAll() {
         DriftRegistry.ioScope.launch {
@@ -361,8 +332,6 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
             refreshInternal()
         }
     }
-
-    // --- QUERY HELPERS ---
 
     @Composable
     fun query(where: String? = null, orderBy: String? = null): List<T> {
@@ -400,10 +369,7 @@ class DriftListController<T : Any>(val fileName: String, val kClass: KClass<T>) 
     }
 }
 
-// =============================================================================================
-// DATABASE HELPER
-// =============================================================================================
-
+// Underlying SQLite implementation
 class DriftDatabaseHelper(context: Context, name: String) :
     SQLiteOpenHelper(context, "$name.sqlite", null, 1) {
 

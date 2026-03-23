@@ -4,9 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 
-// ---------------------------------------------------------------------------------------------
-// COLORS (SwiftUI-style)
-// ---------------------------------------------------------------------------------------------
 
 private val Black     = Color(0xFF000000)
 private val Blue      = Color(0xFF007AFF)

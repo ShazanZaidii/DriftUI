@@ -31,7 +31,11 @@ android {
     lint {
         abortOnError = false
     }
-
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 
 }
 
@@ -92,6 +96,8 @@ dependencies {
 
 // For DriftUI-IoT:
     api("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+//Lucide Icon Pack - Ios like icons
+    api("com.composables:icons-lucide-android:1.0.0")
 
 }
 
@@ -100,12 +106,11 @@ afterEvaluate {
     publishing {
         publications {
             create<MavenPublication>("release") {
-                // This is the crucial part that bundles your 'api' deps into the POM
                 from(components["release"])
 
                 groupId = "com.example"
                 artifactId = "driftui"
-                version = "3.1.1"
+                version = "3.4.2"
             }
         }
     }

@@ -1,5 +1,5 @@
 package com.example.driftui.core
-//This file is Modifiers.kt
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -17,12 +17,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.coroutineScope
-import androidx.compose.foundation.border // For the border implementation
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.geometry.Offset
-// --- CUSTOM CLASS IMPORTS (for defining modifier elements) ---
 import androidx.compose.ui.Alignment
 
 import androidx.compose.ui.draw.drawBehind
@@ -45,22 +44,9 @@ import androidx.compose.ui.input.pointer.positionChangeIgnoreConsumed
 import androidx.compose.ui.platform.LocalDensity
 import kotlin.math.abs
 import androidx.compose.foundation.layout.padding as composePadding
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.systemGestureExclusion
-import androidx.compose.ui.composed
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
-import kotlin.math.abs
 
-
-
-
-// ---------------------------------------------------------------------------------------------
-// BACKGROUND
-// ---------------------------------------------------------------------------------------------
+// background styles
 
 fun Modifier.background(color: Color): Modifier =
     this.then(Modifier.foundationBackground(color))
@@ -81,11 +67,7 @@ fun Modifier.background(
 ): Modifier = this.then(Modifier.foundationBackground(brush, shape, alpha))
 
 
-
-
-// ---------------------------------------------------------------------------------------------
-// FRAME (Updated to support Number: Int, Float, Double)
-// ---------------------------------------------------------------------------------------------
+// frame sizing
 
 fun Modifier.frame(
     width: Number? = null,
@@ -98,7 +80,7 @@ fun Modifier.frame(
 
     var m = this
 
-    // Handle Width
+    // calculate width
     if (width != null) {
         m = m.then(Modifier.width(width.toFloat().dp))
     } else {
@@ -111,7 +93,7 @@ fun Modifier.frame(
         ))
     }
 
-    // Handle Height
+    // calculate height
     if (height != null) {
         m = m.then(Modifier.height(height.toFloat().dp))
     } else {
@@ -127,9 +109,7 @@ fun Modifier.frame(
     return m
 }
 
-// ---------------------------------------------------------------------------------------------
-// VISUAL MODIFIERS
-// ---------------------------------------------------------------------------------------------
+// visual transformations
 
 fun Modifier.offset(x: Int = 0, y: Int = 0): Modifier =
     this.then(
@@ -175,25 +155,19 @@ fun Modifier.scaleEffect(scale: Float): Modifier =
     })
 
 
-
-
-
 data class TextAlignmentModifier(val x: Float, val y: Float) : Modifier.Element
 
 fun Modifier.align(x: Float, y: Float): Modifier = this.then(TextAlignmentModifier(x, y))
 fun Modifier.align(x: Int, y: Int): Modifier = this.then(TextAlignmentModifier(x.toFloat(), y.toFloat()))
 
 
-// ---------------------------------------------------------------------------------------------
-// SHADOW AND BORDER MODIFIERS
-// ---------------------------------------------------------------------------------------------
+// borders and shadows
 
-
-// 1. Simple Border (Square)
+// simple border
 fun Modifier.border(color: Color, width: Number): Modifier =
     this.then(Modifier.border(width.toFloat().dp, color))
 
-// 2. Rounded Border (NEW)
+// rounded border
 fun Modifier.border(color: Color, width: Number, cornerRadius: Number): Modifier =
     this.then(Modifier.border(width.toFloat().dp, color, RoundedCornerShape(cornerRadius.toFloat().dp)))
 
@@ -224,7 +198,7 @@ fun Modifier.shadow(
     )
 )
 
-
+// apply shadow layer conditionally
 fun Modifier.applyShadowIfNeeded(): Modifier =
     this.then(
         Modifier.drawBehind {
@@ -276,15 +250,8 @@ fun Modifier.applyShadowIfNeeded(): Modifier =
     )
 
 
+// lifecycle events
 
-
-
-
-// ---------------------------------------------------------------------------------------------
-// LIFECYCLE MODIFIERS (onAppear / onDisappear)
-// ---------------------------------------------------------------------------------------------
-
-// Modifiers used in NavigationStack to trigger actions on Composition start/end
 data class LifecycleAppearModifier(val action: () -> Unit) : Modifier.Element
 data class LifecycleDisappearModifier(val action: () -> Unit) : Modifier.Element
 
@@ -297,8 +264,7 @@ fun Modifier.onDisappear(action: () -> Unit): Modifier =
     this.then(LifecycleDisappearModifier(action))
 
 
-
-// Opacity:
+// opacity modifier
 
 fun Modifier.opacity(value: Double): Modifier =
     this.then(
@@ -315,9 +281,7 @@ fun Modifier.opacity(value: Float): Modifier =
     )
 
 
-// ---------------------------------------------------------------------------------------------
-// FONT, COLOR, AND SHAPE MODIFIER ELEMENTS
-// ---------------------------------------------------------------------------------------------
+// typography and styling elements
 
 val bold = FontWeight.Bold
 val semibold = FontWeight.SemiBold
@@ -337,7 +301,6 @@ data class BackgroundColorModifier(val color: Color) : Modifier.Element
 
 data class BackButtonHiddenModifier(val hidden: Boolean) : Modifier.Element
 
-// And ensure the extension function uses it correctly:
 fun Modifier.navigationBarBackButtonHidden(hidden: Boolean): Modifier =
     this.then(BackButtonHiddenModifier(hidden))
 fun Modifier.font(font: SystemFont) = this.then(FontModifier(font))
@@ -355,7 +318,6 @@ fun Modifier.foregroundStyle(gradient: GradientColor): Modifier =
         }
     )
 
-// PASTE THIS: Supports Brush directly for text gradients
 fun Modifier.foregroundStyle(brush: Brush): Modifier =
     this.then(
         Modifier.drawWithContent {
@@ -367,12 +329,9 @@ fun Modifier.clipShape(shape: Shape): Modifier = this.clip(shape)
 fun Modifier.cornerRadius(radius: Number): Modifier = this.clipShape(RoundedRectangle(radius.toInt()))
 
 
+// component styles
 
-// ---------------------------------------------------------------------------------------------
-// CUSTOM STYLING MODIFIERS (made public for inter-file access)
-// ---------------------------------------------------------------------------------------------
-
-// Sheet Modifier
+// sheet styling
 sealed class SheetDetent {
     object Large : SheetDetent()
     object Medium : SheetDetent()
@@ -425,7 +384,7 @@ fun Modifier.sheet(
     content = content
 )
 
-// Toggle styling
+// toggle styling
 data class ToggleStyleModifier(
     val onColor: Color? = null,
     val offColor: Color? = null,
@@ -440,7 +399,7 @@ fun Modifier.toggleStyle(
     ToggleStyleModifier(onColor, offColor, thumbColor)
 )
 
-// Slider styling
+// slider styling
 data class SliderStyleModifier(
     val activeTrackColor: Color? = null,
     val inactiveTrackColor: Color? = null,
@@ -467,7 +426,7 @@ fun Modifier.sliderStyle(
     )
 )
 
-// Stepper styling
+// stepper styling
 data class StepperStyleModifier(
     val buttonColor: Color? = null,
     val buttonForegroundColor: Color? = null,
@@ -489,7 +448,7 @@ fun Modifier.stepperStyle(
     )
 )
 
-// Toolbar styling
+// toolbar styling
 data class ToolbarStyleModifier(
     val foreground: Color? = null,
     val background: Color? = null,
@@ -523,7 +482,7 @@ fun Modifier.toolbarStyle(
         )
         .then(
             ToolbarStyleModifier(
-                background = null, // IMPORTANT
+                background = null,
                 foreground = foregroundColor,
                 elevation = elevation,
                 contentPadding = contentPadding
@@ -531,12 +490,10 @@ fun Modifier.toolbarStyle(
         )
 
 
-// Toolbar Layout (must be defined for NavigationAndSheet.kt)
 private data class ToolbarLayoutModifier(val layoutModifier: Modifier) : Modifier.Element
 fun Modifier.toolbarLayout(modifier: Modifier): Modifier =
     this.then(ToolbarLayoutModifier(modifier))
 
-// Navigation/Scheme Modifiers (made public)
 data class NavigationTitleModifier(val title: String) : Modifier.Element
 
 data class PreferredColorSchemeModifier(val scheme: DriftColorScheme) : Modifier.Element
@@ -547,9 +504,7 @@ val lightMode = DriftColorScheme.Light
 fun Modifier.preferredColorScheme(scheme: DriftColorScheme): Modifier =
     this.then(PreferredColorSchemeModifier(scheme))
 
-// ---------------------------------------------------------------------------------------------
-// GESTURE MODIFIERS
-// ---------------------------------------------------------------------------------------------
+// gesture interactions
 
 fun Modifier.onTapGesture(action: () -> Unit): Modifier =
     composed {
@@ -627,7 +582,7 @@ fun Modifier.untilHold(
         }
     )
 
-//Swipe Gestures:
+// swipe detection
 
 fun Modifier.onSwipe(
     onSwipeLeft: () -> Unit = {},
@@ -678,7 +633,7 @@ fun Modifier.onSwipe(
     )
 }
 
-//Pen Tool:
+// drawing tools
 data class DrawModifier(val onDraw: (Offset) -> Unit) : Modifier.Element
 data class DrawEndModifier(val onEnd: () -> Unit) : Modifier.Element
 
@@ -686,19 +641,12 @@ fun Modifier.onDraw(action: (Offset) -> Unit): Modifier = this.then(DrawModifier
 fun Modifier.onDrawEnd(action: () -> Unit): Modifier = this.then(DrawEndModifier(action))
 
 
+// alignment properties
 
-// ---------------------------------------------------------------------------------------------
-// ALIGNMENT MODIFIER & EXTENSIONS
-// ---------------------------------------------------------------------------------------------
-
-
-// 1. The Data Structure
 data class AlignmentModifier(val alignment: Alignment) : Modifier.Element
 
-// 2. The Modifier Function
 fun Modifier.alignment(alignment: Alignment): Modifier = this.then(AlignmentModifier(alignment))
 
-// 3. Helper
 fun Modifier.getAlignment(): Alignment? {
     var align: Alignment? = null
     this.foldIn(Unit) { _, element ->
@@ -710,15 +658,14 @@ fun Modifier.getAlignment(): Alignment? {
     return align
 }
 
-// 4. Swift-like Extensions (KEEP THESE so "Alignment.leading" works)
+// extensions for view alignment
 val Alignment.Companion.leading: Alignment.Horizontal get() = Start
 val Alignment.Companion.trailing: Alignment.Horizontal get() = End
 val Alignment.Companion.centerH: Alignment.Horizontal get() = CenterHorizontally
 val Alignment.Companion.centerV: Alignment.Vertical get() = CenterVertically
 
-// ---------------------------------------------------------------------------------------------
-// PLACEHOLDER STYLING
-// ---------------------------------------------------------------------------------------------
+
+// placeholder styling
 
 data class PlaceholderStyleModifier(
     val color: Color? = null,
@@ -738,19 +685,12 @@ class GradientColor internal constructor(
     val colors: List<Color>
 )
 
-// DSL helper
 fun linearGradient(colors: List<Color>): GradientColor =
     GradientColor(colors)
 
 
-// ---------------------------------------------------------------------------------------------
-// SUBTRACTION / MASKING
-// ---------------------------------------------------------------------------------------------
+// shape masking
 
-/**
- * Subtracts a shape from the current content.
- * effectively "erasing" the area defined by the shape/size/offset.
- */
 fun Modifier.subtract(
     shape: Shape,
     width: Number,
@@ -758,12 +698,10 @@ fun Modifier.subtract(
     x: Number = 0,
     y: Number = 0
 ): Modifier = this
-    // 1. Create an offscreen buffer so the 'Clear' blend mode
-    //    only affects this component, not the whole window.
+    // create offscreen buffer for accurate blending
     .graphicsLayer {
         compositingStrategy = CompositingStrategy.Offscreen
     }
-    // 2. Draw the content, then draw the "Hole" on top
     .drawWithContent {
         drawContent()
 
@@ -774,17 +712,15 @@ fun Modifier.subtract(
 
         val holeSize = Size(w, h)
 
-        // Convert the generic Shape to an Outline based on the requested size
         val outline = shape.createOutline(holeSize, layoutDirection, this)
 
-        // Draw the shape with BlendMode.Clear to cut the hole
+        // erase intersected area with clear blend mode
         drawIntoCanvas { canvas ->
-            // Save state to translate just for the hole
             canvas.save()
             canvas.translate(xPx, yPx)
 
             val paint = Paint().apply {
-                color = Color.Black // Color doesn't matter for BlendMode.Clear
+                color = Color.Black
                 blendMode = BlendMode.Clear
                 isAntiAlias = true
             }

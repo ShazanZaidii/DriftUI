@@ -6,23 +6,14 @@ import java.net.URL
 import java.util.Locale
 import kotlin.math.min
 
-// =============================================================================================
-// 1. ENTRY POINT
-// =============================================================================================
-
-/**
- * Reads a JSON file from Assets or URL.
- * Usage: val data = readJson("metro.json")
- */
+// entry point for reading json files from assets or url
 fun readJson(source: String): DriftJson {
     val context = DriftRegistry.context
         ?: throw IllegalStateException("DriftUI not initialized. Call DriftView or DriftStorage first.")
 
     val rawString = try {
         if (source.startsWith("http")) {
-            // Note: For URLs, this should technically be in a suspend function,
-            // but for simplicity in this helper we allow blocking or use strict mode policy.
-            // Ideally, use: suspendReadJson()
+            // url calls should ideally be suspended but blocking is allowed here for simplicity
             URL(source).readText()
         } else {
             context.assets.open(source).bufferedReader().use { it.readText() }
@@ -32,10 +23,7 @@ fun readJson(source: String): DriftJson {
     return DriftJson.parse(rawString)
 }
 
-// =============================================================================================
-// 2. THE CHAINABLE WRAPPER
-// =============================================================================================
-
+// chainable wrapper for parsing and navigating json structures
 class DriftJson(private val element: Any?) : Iterable<DriftJson> {
 
     companion object {
@@ -49,8 +37,7 @@ class DriftJson(private val element: Any?) : Iterable<DriftJson> {
         }
     }
 
-    // --- ACCESSORS (The "graph['stations']" syntax) ---
-
+    // accessors for bracket syntax navigation
     operator fun get(key: String): DriftJson {
         return when (element) {
             is JSONObject -> if (element.has(key)) DriftJson(element.get(key)) else DriftJson(null)
@@ -65,8 +52,7 @@ class DriftJson(private val element: Any?) : Iterable<DriftJson> {
         }
     }
 
-    // --- CONVERTERS ---
-
+    // type converters
     override fun toString(): String = element.toString()
 
     val string: String get() = element.toString()
@@ -74,7 +60,7 @@ class DriftJson(private val element: Any?) : Iterable<DriftJson> {
     val double: Double get() = element.toString().toDoubleOrNull() ?: 0.0
     val bool: Boolean get() = element.toString().toBoolean()
 
-    // Convert current node to a generic Map (for when you need keys)
+    // generic map conversion for iterating over keys
     val map: Map<String, DriftJson> get() {
         if (element !is JSONObject) return emptyMap()
         val result = mutableMapOf<String, DriftJson>()
@@ -82,8 +68,7 @@ class DriftJson(private val element: Any?) : Iterable<DriftJson> {
         return result
     }
 
-    // --- ITERATION (Enable .filter, .map, .forEach) ---
-
+    // iteration support for standard kotlin collection functions
     override fun iterator(): Iterator<DriftJson> {
         return when (element) {
             is JSONArray -> object : Iterator<DriftJson> {
@@ -91,7 +76,7 @@ class DriftJson(private val element: Any?) : Iterable<DriftJson> {
                 override fun hasNext(): Boolean = index < element.length()
                 override fun next(): DriftJson = DriftJson(element.get(index++))
             }
-            // If it's an Object (like your stations map), treat values as a list
+            // treats json object values as a list during iteration
             is JSONObject -> object : Iterator<DriftJson> {
                 val keys = element.keys()
                 override fun hasNext(): Boolean = keys.hasNext()
@@ -101,16 +86,11 @@ class DriftJson(private val element: Any?) : Iterable<DriftJson> {
         }
     }
 
-    // =========================================================================================
-    // 3. POWER TOOLS (Search, Sort, Fuzzy)
-    // =========================================================================================
+    // data manipulation tools
 
-    /**
-     * Sorts the list/object values by a specific key.
-     * Usage: .sort("name")
-     */
+    // sorts values by specific key
     fun sort(key: String, ascending: Boolean = true): List<DriftJson> {
-        val list = this.toList() // Uses the iterator above
+        val list = this.toList()
         return if (ascending) {
             list.sortedBy { it[key].string }
         } else {
@@ -118,35 +98,28 @@ class DriftJson(private val element: Any?) : Iterable<DriftJson> {
         }
     }
 
-    /**
-     * Exact search.
-     * Usage: .search("name", "Mundka")
-     */
+    // exact search
     fun search(key: String, query: String): List<DriftJson> {
         return this.filter {
             it[key].string.contains(query, ignoreCase = true)
         }
     }
 
-    /**
-     * Fuzzy Search using Levenshtein Distance.
-     * Usage: .fuzzySearch("name", "Mundka", threshold = 2)
-     */
+    // fuzzy search using levenshtein distance
     fun fuzzySearch(key: String, query: String, threshold: Int = 2): List<DriftJson> {
         val q = query.lowercase(Locale.ROOT)
         return this.filter { item ->
             val target = item[key].string.lowercase(Locale.ROOT)
 
-            // 1. Direct containment (Fast path)
+            // fast path for direct containment
             if (target.contains(q)) return@filter true
 
-            // 2. Levenshtein calculation
+            // fallback to levenshtein calculation
             calculateLevenshtein(target, q) <= threshold
         }
     }
 
-    // --- INTERNAL HELPERS ---
-
+    // internal helper functions
     private fun calculateLevenshtein(s1: String, s2: String): Int {
         val dp = Array(s1.length + 1) { IntArray(s2.length + 1) }
         for (i in 0..s1.length) dp[i][0] = i

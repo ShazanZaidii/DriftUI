@@ -15,13 +15,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import android.view.HapticFeedbackConstants
 import kotlinx.coroutines.*
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 
-// =============================================================================================
-// ENUMS & NODES
-// =============================================================================================
+// enums and nodes
 
 enum class ToastType {
     Default, Success, Error, Warning
@@ -33,9 +32,7 @@ private data class ToastColorNode(val color: Color) : Modifier.Element
 private data class ToastTextColorNode(val color: Color) : Modifier.Element
 private data class ToastTypeNode(val type: ToastType) : Modifier.Element
 
-// =============================================================================================
-// PUBLIC DSL MODIFIERS
-// =============================================================================================
+// public dsl modifiers
 
 fun Modifier.duration(seconds: Double): Modifier = this.then(ToastDurationNode(seconds))
 fun Modifier.onEnd(action: () -> Unit): Modifier = this.then(ToastOnEndNode(action))
@@ -43,36 +40,46 @@ fun Modifier.toastColor(color: Color): Modifier = this.then(ToastColorNode(color
 fun Modifier.textColor(color: Color): Modifier = this.then(ToastTextColorNode(color))
 fun Modifier.type(type: ToastType): Modifier = this.then(ToastTypeNode(type))
 
-// =============================================================================================
-// TOAST MANAGER
-// =============================================================================================
+// toast manager
 
 object DriftToastManager {
     var activeToast by mutableStateOf<(@Composable () -> Unit)?>(null)
     var activeType by mutableStateOf(ToastType.Default)
+
+    // tracks the identity of the currently visible toast
+    var activeId by mutableStateOf<String?>(null)
+
     private var job: Job? = null
     private val scope = CoroutineScope(Dispatchers.Main)
 
     fun show(
         duration: Double,
         type: ToastType = ToastType.Default,
+        id: String = "",
+        overload: Boolean = false,
         onEnd: (() -> Unit)? = null,
         content: @Composable () -> Unit
     ) {
+        // ignore spam if overload is enabled and exact toast is visible
+        if (overload && activeToast != null && activeId == id) {
+            return
+        }
+
         job?.cancel()
         activeType = type
+        activeId = id
         activeToast = content
+
         job = scope.launch {
             delay((duration * 1000).toLong())
             activeToast = null
+            activeId = null
             onEnd?.invoke()
         }
     }
 }
 
-// =============================================================================================
-// INTERNAL CONTAINER
-// =============================================================================================
+// internal container
 
 @Composable
 private fun ToastContainer(modifier: Modifier, content: @Composable () -> Unit) {
@@ -96,7 +103,6 @@ private fun ToastContainer(modifier: Modifier, content: @Composable () -> Unit) 
         modifier = Modifier
             .shadow(elevation = 8.dp, shape = RoundedCornerShape(50), clip = false)
             .background(baseColor, RoundedCornerShape(50))
-            // We only apply the modifier to the container for things like layout/padding
             .then(modifier)
             .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
@@ -104,17 +110,18 @@ private fun ToastContainer(modifier: Modifier, content: @Composable () -> Unit) 
     }
 }
 
-// =============================================================================================
-// THE END API
-// =============================================================================================
+// the end api
 
-fun Toast(message: String, modifier: Modifier = Modifier) {
+fun Toast(
+    message: String,
+    overload: Boolean = false,
+    modifier: Modifier = Modifier
+) {
     var duration = 2.0
     var onEnd: (() -> Unit)? = null
     var textCol = Color.White
     var type = ToastType.Default
 
-    // Scrutinize the modifier for text properties
     modifier.foldIn(Unit) { _, element ->
         if (element is ToastDurationNode) duration = element.seconds
         if (element is ToastOnEndNode) onEnd = element.action
@@ -123,10 +130,14 @@ fun Toast(message: String, modifier: Modifier = Modifier) {
         Unit
     }
 
-    DriftToastManager.show(duration, type, onEnd) {
+    DriftToastManager.show(
+        duration = duration,
+        type = type,
+        id = message, // uses the message string as its unique identity
+        overload = overload,
+        onEnd = onEnd
+    ) {
         ToastContainer(modifier) {
-            // DIRECT FIX: Use the standard Material3 Text color parameter
-            // to ensure the DSL custom modifiers aren't being ignored.
             Text(
                 text = message,
                 color = textCol,
@@ -136,7 +147,12 @@ fun Toast(message: String, modifier: Modifier = Modifier) {
     }
 }
 
-fun Toast(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun Toast(
+    modifier: Modifier = Modifier,
+    overloadKey: String = "custom_toast", // identity for custom lambda toasts
+    overload: Boolean = false,
+    content: @Composable () -> Unit
+) {
     var duration = 2.0
     var onEnd: (() -> Unit)? = null
     var type = ToastType.Default
@@ -148,16 +164,20 @@ fun Toast(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
         Unit
     }
 
-    DriftToastManager.show(duration, type, onEnd) {
+    DriftToastManager.show(
+        duration = duration,
+        type = type,
+        id = overloadKey,
+        overload = overload,
+        onEnd = onEnd
+    ) {
         ToastContainer(modifier) {
             content()
         }
     }
 }
 
-// =============================================================================================
-// THE HOST
-// =============================================================================================
+// the host
 
 @Composable
 fun DriftToastHost() {
@@ -165,18 +185,19 @@ fun DriftToastHost() {
     val type = DriftToastManager.activeType
     val view = LocalView.current
 
-    // --- SHAKE ANIMATION LOGIC ---
     val shakeOffset = remember { androidx.compose.animation.core.Animatable(0f) }
+
+    var isVisible by remember { mutableStateOf(false) }
+    var activeContent by remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
 
     LaunchedEffect(toast) {
         if (toast != null) {
-            // TRIGGER STRONG HAPTICS
+            activeContent = toast
+            isVisible = true
+
             when(type) {
                 ToastType.Error -> {
-                    // VIRTUAL_KEY is much stronger than REJECT
                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
-
-                    // Visual Shake for Error
                     repeat(4) {
                         shakeOffset.animateTo(20f, tween(50))
                         shakeOffset.animateTo(-20f, tween(50))
@@ -184,32 +205,46 @@ fun DriftToastHost() {
                     shakeOffset.animateTo(0f, tween(50))
                 }
                 ToastType.Success -> {
-                    // LONG_PRESS is a distinct, heavy pulse
                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
                 }
                 else -> {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 }
             }
+        } else {
+            isVisible = false
+            delay(200)
+            activeContent = null
         }
     }
 
-    Box(
-        Modifier.fillMaxSize().padding(bottom = 64.dp).zIndex(100f),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        AnimatedVisibility(
-            visible = toast != null,
-            enter = fadeIn(tween(300)) + scaleIn(initialScale = 0.8f, animationSpec = tween(300)),
-            exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.8f, animationSpec = tween(200))
+    if (activeContent != null) {
+        Popup(
+            alignment = Alignment.BottomCenter,
+            properties = PopupProperties(
+                focusable = false,
+                clippingEnabled = false
+            )
         ) {
             Box(
                 Modifier
-                    .padding(32.dp)
-                    // Apply the visual shake offset
-                    .offset(x = shakeOffset.value.dp)
+                    .fillMaxWidth()
+                    .padding(bottom = 64.dp),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                toast?.invoke()
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(300)) + scaleIn(initialScale = 0.8f, animationSpec = tween(300)),
+                    exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.8f, animationSpec = tween(200))
+                ) {
+                    Box(
+                        Modifier
+                            .padding(32.dp)
+                            .offset(x = shakeOffset.value.dp)
+                    ) {
+                        activeContent?.invoke()
+                    }
+                }
             }
         }
     }

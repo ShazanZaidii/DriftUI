@@ -1,8 +1,8 @@
 package com.example.driftui.firebase
 
-/**
- * Simple text search using Kotlin stdlib.
- */
+
+//Simple text search using Kotlin stdlib.
+
 fun <T> List<T>.search(
     query: String,
     selector: (T) -> String

@@ -19,10 +19,7 @@ import java.util.ArrayList
 import java.util.UUID
 import kotlin.math.max
 
-// =============================================================================================
-// PART 1: THE BACKEND LOGIC (Media & PDF)
-// =============================================================================================
-
+// backend logic for media and pdf
 object DriftMedia {
 
     fun save(context: Context, uri: Uri, isVideo: Boolean): String? {
@@ -63,10 +60,7 @@ object DriftMedia {
     }
 }
 
-// =============================================================================================
-// DSL HOOKS (Pickers)
-// =============================================================================================
-
+// dsl hooks for pickers
 @Composable
 fun useImagePicker(onResult: (String) -> Unit): () -> Unit {
     val context = LocalContext.current
@@ -98,10 +92,7 @@ fun useMediaViewer(): (String, Boolean) -> Unit {
 }
 
 
-// =============================================================================================
-// PDF ENGINE (ROBUST WRAPPING & LAYOUT)
-// =============================================================================================
-
+// pdf engine with layout wrapping
 object DriftPdf {
 
     class PdfSession(
@@ -112,7 +103,7 @@ object DriftPdf {
         private var pageNumber = 0
         private var currentPage: PdfDocument.Page? = null
 
-        // Cursor tracking
+        // cursor tracking
         var y = 40f
         val margin = 40f
         val contentWidth = width - (margin * 2)
@@ -156,10 +147,8 @@ object DriftPdf {
             y += lineHeight + 4f
         }
 
-        /**
-         * Draws a fully wrapped table.
-         * Calculates row heights dynamically based on content.
-         */
+        // draws a fully wrapped table
+        // calculates row heights dynamically based on content
         fun drawTable(
             headers: List<String>,
             data: List<List<String>>,
@@ -171,7 +160,7 @@ object DriftPdf {
             val colWidth = contentWidth / colCount.toFloat()
             val padding = 4f
 
-            // 1. Headers
+            // headers
             val headerHeight = headerPaint.textSize + 10f
             ensureSpace(headerHeight)
             var x = margin
@@ -183,21 +172,21 @@ object DriftPdf {
             canvas.drawLine(margin, y, margin + contentWidth, y, linePaint)
             y += 5f
 
-            // 2. Data Rows
+            // data rows
             val lineHeight = textPaint.textSize + 5f
 
             data.forEach { row ->
-                // A. Calculate Max Height for this row
-                // We split each cell into lines based on wrapping width
+                // calculate max height for this row
+                // split each cell into lines based on wrapping width
                 val cellLines = row.map { cellText ->
                     val lines = mutableListOf<String>()
                     val safeText = if (cellText.isBlank()) "-" else cellText
-                    val paragraphs = safeText.split("\n") // Handle explicit newlines
+                    val paragraphs = safeText.split("\n")
 
                     paragraphs.forEach { para ->
                         var start = 0
                         while (start < para.length) {
-                            // Calculate how many chars fit in one column line
+                            // calculate how many chars fit in one column line
                             val count = textPaint.breakText(
                                 para,
                                 start,
@@ -213,16 +202,16 @@ object DriftPdf {
                     lines
                 }
 
-                // The row height is determined by the cell with the most lines
+                // row height is determined by the cell with the most lines
                 val maxLines = cellLines.maxOfOrNull { it.size } ?: 1
                 val rowHeight = (maxLines * lineHeight) + 10f
 
                 ensureSpace(rowHeight)
 
-                // B. Draw Cells
+                // draw cells
                 var colX = margin
                 cellLines.forEach { lines ->
-                    var lineY = y + lineHeight - 5f // baseline adjustment
+                    var lineY = y + lineHeight - 5f
                     lines.forEach { line ->
                         canvas.drawText(line, colX + padding, lineY, textPaint)
                         lineY += lineHeight
@@ -230,7 +219,7 @@ object DriftPdf {
                     colX += colWidth
                 }
 
-                // C. Draw Divider & Advance
+                // draw divider and advance
                 y += rowHeight
                 canvas.drawLine(margin, y, margin + contentWidth, y, linePaint)
                 y += 5f
@@ -284,7 +273,7 @@ object DriftPdf {
         }
     }
 
-    // --- SINGLE SHARE ---
+    // single share
     fun <T> share(
         context: Context,
         fileName: String,
@@ -316,7 +305,7 @@ object DriftPdf {
         }
     }
 
-    // --- BATCH SHARE ---
+    // batch share
     fun <T> shareMultiple(
         context: Context,
         items: List<T>,

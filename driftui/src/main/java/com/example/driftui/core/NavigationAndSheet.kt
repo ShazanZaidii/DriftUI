@@ -1,8 +1,5 @@
-
-
 package com.example.driftui.core
 
-//This file is NavigationAndSheet
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -28,10 +25,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import java.util.UUID
 
-
-// ---------------------------------------------------------------------------------------------
-// 3. NAVIGATION CONTROLLER
-// ---------------------------------------------------------------------------------------------
+// navigation controller
 
 object DriftRootHost {
     val rootContent = mutableStateOf<(@Composable () -> Unit)?>(null)
@@ -47,7 +41,7 @@ class DriftNavController(
         private set
 
     init {
-        // Now listens for the base "root" route as well as "screen/{id}"
+        // listens for base root route and dynamic screen ids
         navController.addOnDestinationChangedListener { _, destination, arguments ->
             if (destination.route == "root") {
                 currentTag = tagRegistry["root"]
@@ -58,20 +52,19 @@ class DriftNavController(
         }
     }
 
-    // 1. FOR THE INITIAL APP LAUNCH
+    // initial app launch
     fun setRootTag(tag: String) {
         tagRegistry["root"] = tag
         if (currentTag == null) currentTag = tag
     }
 
-    // 2. UPDATED TO ACCEPT A TAG (And properly clear the backstack)
+    // updates root and clears the backstack
     fun replaceRoot(tag: String? = null, screen: @Composable () -> Unit) {
         DriftRootHost.rootContent.value = screen
         if (tag != null) {
             tagRegistry["root"] = tag
         }
-        // Free architecture win: This ensures if you call replaceRoot from "Profile",
-        // it actually clears the backstack down to the base screen.
+        // clears backstack down to base screen
         navController.popBackStack("root", inclusive = false)
     }
 

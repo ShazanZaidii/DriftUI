@@ -9,10 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
-// =============================================================================================
-// PUBLIC DSL (Developer API)
-// =============================================================================================
-
+// public dsl for notifications
 object Notification {
 
     fun send(block: DriftNotificationBuilder.() -> Unit) {
@@ -30,10 +27,7 @@ object Notification {
     fun cancelAll() = DriftNotificationEngine.cancelAll()
 }
 
-// =============================================================================================
-// CONFIG BUILDER
-// =============================================================================================
-
+// configuration builder
 class DriftNotificationBuilder {
     var title: String = ""
     var body: String = ""
@@ -41,19 +35,13 @@ class DriftNotificationBuilder {
     var onTap: (() -> Unit)? = null
 }
 
-// =============================================================================================
-// GLOBALS SET BY DRIFTVIEW
-// =============================================================================================
-
+// globals set by driftview
 object DriftGlobals {
     internal var applicationContext: Context? = null
     internal var currentActivity: Activity? = null
 }
 
-// =============================================================================================
-// NOTIFICATION ENGINE
-// =============================================================================================
-
+// core notification engine
 object DriftNotificationEngine {
 
     private const val CHANNEL_ID = "DRIFT_NOTIFICATION_CHANNEL"
@@ -62,7 +50,7 @@ object DriftNotificationEngine {
 
     private val tapCallbacks = mutableMapOf<Int, (() -> Unit)?>()
 
-    // Called by DriftView after setting context & activity
+    // called by driftview after setting context and activity
     fun prepareIfNeeded() {
         if (initialized) return
 
@@ -72,10 +60,7 @@ object DriftNotificationEngine {
         initialized = true
     }
 
-    // -----------------------------------------------------------------------------------------
-    // AUTO PERMISSION (Android 13+)
-    // -----------------------------------------------------------------------------------------
-
+    // auto permission request for android 13+
     private fun ensurePermission(activity: Activity?) {
         if (Build.VERSION.SDK_INT < 33) return
 
@@ -92,10 +77,7 @@ object DriftNotificationEngine {
         }
     }
 
-    // -----------------------------------------------------------------------------------------
-    // SEND NOW
-    // -----------------------------------------------------------------------------------------
-
+    // send immediate notification
     fun send(cfg: DriftNotificationBuilder) {
         prepareIfNeeded()
 
@@ -115,7 +97,7 @@ object DriftNotificationEngine {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // FINAL builder with all required flags for ongoing notifications
+        // builder with required flags for ongoing notifications
         val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setContentTitle(cfg.title)
             .setContentText(cfg.body)
@@ -130,10 +112,7 @@ object DriftNotificationEngine {
         NotificationManagerCompat.from(ctx).notify(id, builder.build())
     }
 
-    // -----------------------------------------------------------------------------------------
-    // SCHEDULE
-    // -----------------------------------------------------------------------------------------
-
+    // schedule notification
     fun schedule(cfg: DriftNotificationBuilder, delaySeconds: Int) {
         prepareIfNeeded()
 
@@ -174,18 +153,12 @@ object DriftNotificationEngine {
         }
     }
 
-    // -----------------------------------------------------------------------------------------
-    // TAP HANDLER
-    // -----------------------------------------------------------------------------------------
-
+    // tap handler
     internal fun handleTap(id: Int) {
         tapCallbacks[id]?.invoke()
     }
 
-    // -----------------------------------------------------------------------------------------
-    // CANCEL
-    // -----------------------------------------------------------------------------------------
-
+    // cancellation helpers
     fun cancel(id: Int) {
         DriftGlobals.applicationContext?.let {
             NotificationManagerCompat.from(it).cancel(id)
@@ -198,13 +171,10 @@ object DriftNotificationEngine {
         }
     }
 
-    // -----------------------------------------------------------------------------------------
-    // CHANNEL CREATION
-    // -----------------------------------------------------------------------------------------
-
+    // channel creation
     private fun createChannel(ctx: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val importance = NotificationManager.IMPORTANCE_DEFAULT // more persistent than HIGH
+            val importance = NotificationManager.IMPORTANCE_DEFAULT // more persistent than high
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Drift Notifications",
@@ -216,10 +186,7 @@ object DriftNotificationEngine {
     }
 }
 
-// =============================================================================================
-// RECEIVER
-// =============================================================================================
-
+// broadcast receiver for taps
 class DriftNotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getIntExtra("id", -1)

@@ -15,33 +15,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.UUID
 
-// =============================================================================================
-// UTILS
-// =============================================================================================
+// utils
 
 fun UUID(): UUID = UUID.randomUUID()
 
-// =============================================================================================
-// SWAP
-// =============================================================================================
-
-// Safely swap the values of two standard native states
+// safely swap the values of two standard native states
 fun <T> swap(a: MutableState<T>, b: MutableState<T>) {
     val temp = a.value
     a.value = b.value
     b.value = temp
 }
 
-// =============================================================================================
-// MVVM (SwiftUI-like ViewModels)
-// =============================================================================================
+// mvvm matured compose implementation
 
 open class ObservableObject : ViewModel()
+
+// screen scoped state
 
 @Composable
 inline fun <reified T : ObservableObject> StateObject(): T {
@@ -49,37 +42,42 @@ inline fun <reified T : ObservableObject> StateObject(): T {
 }
 
 @Composable
-inline fun <reified T : ObservableObject> EnvironmentObject(): T {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val storeOwner = lifecycleOwner as ViewModelStoreOwner
-    return viewModel<T>(storeOwner)
+inline fun <reified T : ObservableObject> StateObject(crossinline factory: () -> T): T {
+    return viewModel(factory = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <U : ViewModel> create(modelClass: Class<U>): U = factory() as U
+    })
 }
 
-@Composable
-inline fun <reified T : ObservableObject> ObservedObject(noinline factory: () -> T): T {
-    return remember { factory() }
-}
+// global scoped state
 
 @Composable
 inline fun <reified T : ObservableObject> SharedObject(): T {
-    val context = LocalContext.current
-    val activity = remember(context) { findActivity(context) }
-    return viewModel(activity as ViewModelStoreOwner)
+    val activity = findActivity(LocalContext.current)
+    return viewModel<T>(activity)
 }
 
-// Helper to find the Activity from any Context
+@Composable
+inline fun <reified T : ObservableObject> SharedObject(crossinline factory: () -> T): T {
+    val activity = findActivity(LocalContext.current)
+    return viewModel(activity, factory = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <U : ViewModel> create(modelClass: Class<U>): U = factory() as U
+    })
+}
+
+// context utilities
+
 fun findActivity(context: Context): ComponentActivity {
     var ctx = context
     while (ctx is ContextWrapper) {
         if (ctx is ComponentActivity) return ctx
         ctx = ctx.baseContext
     }
-    error("SharedObject must be used inside an Activity")
+    error("DriftUI: SharedObject must be used inside an Activity context.")
 }
 
-// =============================================================================================
-// SAVING UTILS (Gallery)
-// =============================================================================================
+// saving utils for gallery
 
 fun savePathToGallery(context: Context, path: Path, width: Int, height: Int): Boolean {
     try {
@@ -132,9 +130,7 @@ fun savePathToGallery(context: Context, path: Path, width: Int, height: Int): Bo
     }
 }
 
-// =============================================================================================
-// DRIFT DRAW CONTROLLER (Rewritten for Standard Compose State)
-// =============================================================================================
+// drift draw controller
 
 @Composable
 fun DrawController(): DriftDrawController {
@@ -144,8 +140,6 @@ fun DrawController(): DriftDrawController {
 
 class DriftDrawController(private val context: Context) {
 
-    // 1. Replaced State<T> with Compose's standard 'var by mutableStateOf'
-    // This allows you to interact with these variables directly without needing '.value' or '.set()'
     var path by mutableStateOf(Path())
     var color by mutableStateOf(Color.Black)
     var width by mutableStateOf(5f)
@@ -182,7 +176,7 @@ class DriftDrawController(private val context: Context) {
     fun clear() {
         snapshot()
         path.clear()
-        path = Path() // Trigger refresh
+        path = Path() // trigger refresh
     }
 
     fun snapshot() {

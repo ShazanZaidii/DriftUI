@@ -4,7 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import kotlin.math.abs
 
-// 1. New Data Class to hold individual stroke details
+// holds individual stroke details
 data class StrokeData(
     val points: MutableList<Offset>,
     val color: Color,
@@ -12,14 +12,15 @@ data class StrokeData(
 )
 
 class Path {
-    // 2. Store StrokeData instead of just lists of points
+
+    // collection of all drawn strokes
     private val _strokes = mutableListOf<StrokeData>()
 
     val strokes: List<StrokeData> get() = _strokes
 
     private var currentStroke: StrokeData? = null
 
-    // 3. Updated start() to accept color and width
+    // starts a new stroke segment
     fun start(at: Offset, color: Color, width: Float) {
         val newStroke = StrokeData(mutableListOf(at), color, width)
         _strokes.add(newStroke)
@@ -42,7 +43,7 @@ class Path {
     fun copy(): Path {
         val newPath = Path()
         for (stroke in _strokes) {
-            // Deep copy the points, preserve color and width
+            // deep copy the points while preserving style
             newPath._strokes.add(
                 StrokeData(
                     stroke.points.toMutableList(),
@@ -81,7 +82,7 @@ class Path {
         val radiusSq = radius * radius
 
         for (stroke in _strokes) {
-            // Fast Check
+            // fast bounding box check
             if (stroke.points.isNotEmpty()) {
                 val first = stroke.points.first()
                 if (abs(first.x - eraserPos.x) > radius + 500 &&
@@ -100,10 +101,9 @@ class Path {
                 if (dx * dx + dy * dy > radiusSq) {
                     currentSegmentPoints.add(point)
                 } else {
-                    // Cut happens here
+                    // split the stroke at the eraser intersection
                     if (currentSegmentPoints.isNotEmpty()) {
                         if (currentSegmentPoints.size >= 2) {
-                            // Create new stroke preserving ORIGINAL color/width
                             newStrokes.add(StrokeData(currentSegmentPoints, stroke.color, stroke.width))
                         }
                         currentSegmentPoints = mutableListOf()
@@ -148,7 +148,7 @@ class Path {
             }
             smoothed.add(points.last())
 
-            // Reconstruct with smoothed points but same color/width
+            // reconstruct with smoothed points
             smoothedStrokes.add(StrokeData(smoothed, stroke.color, stroke.width))
         }
 

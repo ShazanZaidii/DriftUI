@@ -1,4 +1,5 @@
 package com.example.driftui.core
+
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.statusBars
@@ -9,7 +10,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// This allows you to use 'statusBarHeight' directly in any Composable
 val statusBarHeight: Dp
     @Composable
     get() = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -22,49 +22,41 @@ val deviceWidth: Dp
     @Composable
     get() = LocalConfiguration.current.screenWidthDp.dp
 
-// 2. Device Screen Height
 val deviceHeight: Dp
     @Composable
     get() = LocalConfiguration.current.screenHeightDp.dp
 
-//unit:
-
-// Perceptual (fonts, icons, radius)
+// visual scaling for fonts and icons
 val Number.u: Double
     get() = this.toDouble() * DriftScale.visualScale
 
-// Width-based unit
+// width based unit
 val Number.wu: Double
     get() = this.toDouble() * DriftScale.widthScale
 
-// Height-based unit
+// height based unit
 val Number.hu: Double
     get() = this.toDouble() * DriftScale.heightScale
-
 
 val xMAx = 170.wu.toInt()
 val xMin = -170.wu.toInt()
 val yMax = -370.hu.toInt()
 val yMin = 370.hu.toInt()
 
-
+// dynamic text scaling based on base width
 @Composable
 fun scaledSp(size: Int): TextUnit {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
-    // 360dp is the standard "base" width for most designs.
-    // This calculates a multiplier. e.g. Tablet (720dp) = 2.0x multiplier.
     val scaleFactor = screenWidth / 360f
     return (size * scaleFactor).sp
 }
 
+// dynamic layout scaling based on base width
 @Composable
 fun scaledDp(size: Number): Dp {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.toFloat()
-
-    // 360dp is our reference "Normal Phone" width.
-    // If the screen is wider (e.g. 720dp tablet), the multiplier becomes 2.0x.
     val scaleFactor = screenWidth / 360f
 
     return (size.toFloat() * scaleFactor).dp

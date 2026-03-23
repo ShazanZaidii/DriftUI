@@ -9,11 +9,10 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.media.MediaPlayer
 import android.os.* import android.view.animation.LinearInterpolator
+import androidx.annotation.RequiresApi
 import java.io.IOException
 
-// =============================================================================================
-// GLOBAL API: AUDIO
-// =============================================================================================
+// global api for audio
 
 fun playSound(
     file: String,
@@ -41,36 +40,30 @@ fun stopAllSounds() {
     DriftAudio.stopAll()
 }
 
-// =============================================================================================
-// GLOBAL API: HAPTICS
-// =============================================================================================
+// global api for haptics
 
-// 1. The Enum (Internal logic)
+// internal haptic types
 enum class Haptic {
     Selection, Light, Medium, Heavy, Success, Warning, Error
 }
 
-// 2. The Global Aliases (The "Hella Easy" Syntax)
+// global aliases
 val selection = Haptic.Selection
 val heavy     = Haptic.Heavy
 val success   = Haptic.Success
 val warning   = Haptic.Warning
 val error     = Haptic.Error
 
-// Note: 'light' and 'medium' are used by Fonts, so we use synonyms here:
+// synonyms to avoid font weight collisions
 val soft      = Haptic.Light
 val impact    = Haptic.Medium
 
-/**
- * Triggers haptic feedback.
- */
+// triggers haptic feedback
 fun haptic(type: Haptic) {
     DriftHaptics.perform(type)
 }
 
-// =============================================================================================
-// ENGINE 1: AUDIO
-// =============================================================================================
+// audio engine
 
 object DriftAudio {
     var context: Context? = null
@@ -90,6 +83,7 @@ object DriftAudio {
         if (context == null) context = ctx.applicationContext
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     fun requestSilence(ctx: Context) {
         isBlockingSystemAudio = true
         val audioManager = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -152,6 +146,7 @@ object DriftAudio {
         if (silenceTrack?.playState == AudioTrack.PLAYSTATE_PLAYING) silenceTrack?.pause()
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     fun onAppResume() {
         pausedByApp.forEach { mp -> try { mp.start() } catch (e: Exception) {} }
         pausedByApp.clear()
@@ -198,7 +193,7 @@ object DriftAudio {
             }
             mp.isLooping = loop
 
-            // Mixer
+            // audio mixer setup
             val pStart = panStart.toFloat().coerceIn(-1f, 1f)
             val v = vol.toFloat()
             var curVol = if (fade > 0) 0f else v
@@ -282,9 +277,7 @@ object DriftAudio {
     }
 }
 
-// =============================================================================================
-// ENGINE 2: HAPTICS
-// =============================================================================================
+// haptics engine
 
 object DriftHaptics {
     var context: Context? = null

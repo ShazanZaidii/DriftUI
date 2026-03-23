@@ -78,10 +78,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-// =============================================================================================
-// STATUS BAR
-// =============================================================================================
-
+// status bar
 @Composable
 fun StatusBar(style: DriftColorScheme) {
     val view = LocalView.current
@@ -95,8 +92,7 @@ fun StatusBar(style: DriftColorScheme) {
                     SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                 } else {
                     SystemBarStyle.light(
-                        android.graphics.Color.TRANSPARENT,
-                        android.graphics.Color.TRANSPARENT
+                        android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
                     )
                 }
             )
@@ -104,10 +100,7 @@ fun StatusBar(style: DriftColorScheme) {
     }
 }
 
-// =============================================================================================
-// ALIGNMENT EXTRACTOR
-// =============================================================================================
-
+// alignment extractor
 @Composable
 internal fun Modifier.getTextAlignment(): Pair<TextAlign, Alignment> {
     var alignMod: TextAlignmentModifier? = null
@@ -121,18 +114,15 @@ internal fun Modifier.getTextAlignment(): Pair<TextAlign, Alignment> {
 
     val textAlign = when {
         x < -0.2f -> TextAlign.Start
-        x > 0.2f  -> TextAlign.End
-        else      -> TextAlign.Center
+        x > 0.2f -> TextAlign.End
+        else -> TextAlign.Center
     }
 
     val alignment = BiasAlignment(x, y)
     return textAlign to alignment
 }
 
-// =============================================================================================
-// SHAPES
-// =============================================================================================
-
+// shapes
 @Composable
 internal fun Modifier.getForegroundColor(): Color? {
     var chosenColor: Color? = null
@@ -147,7 +137,8 @@ internal fun Modifier.getForegroundColor(): Color? {
 fun Rectangle(width: Int, height: Int, modifier: Modifier = Modifier) {
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
     Box(
-        modifier = modifier.applyShadowIfNeeded()
+        modifier = modifier
+            .applyShadowIfNeeded()
             .size(width.dp, height.dp)
             .clip(RectangleShape)
             .background(fgColor)
@@ -158,7 +149,8 @@ fun Rectangle(width: Int, height: Int, modifier: Modifier = Modifier) {
 fun Circle(radius: Int, modifier: Modifier = Modifier) {
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
     Box(
-        modifier = modifier.applyShadowIfNeeded()
+        modifier = modifier
+            .applyShadowIfNeeded()
             .size(radius.dp * 2)
             .clip(CircleShape)
             .background(fgColor)
@@ -169,7 +161,8 @@ fun Circle(radius: Int, modifier: Modifier = Modifier) {
 fun Capsule(width: Int, height: Int, modifier: Modifier = Modifier) {
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
     Box(
-        modifier = modifier.applyShadowIfNeeded()
+        modifier = modifier
+            .applyShadowIfNeeded()
             .size(width.dp, height.dp)
             .clip(RoundedCornerShape(percent = 50))
             .background(fgColor)
@@ -177,10 +170,13 @@ fun Capsule(width: Int, height: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun RoundedRectangle(width: Number, height: Number, cornerRadius: Number, modifier: Modifier = Modifier) {
+fun RoundedRectangle(
+    width: Number, height: Number, cornerRadius: Number, modifier: Modifier = Modifier
+) {
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
     Box(
-        modifier = modifier.applyShadowIfNeeded()
+        modifier = modifier
+            .applyShadowIfNeeded()
             .size(width.toFloat().dp, height.toFloat().dp)
             .clip(RoundedCornerShape(cornerRadius.toFloat().dp))
             .background(fgColor)
@@ -198,7 +194,8 @@ val TriangleShape = GenericShape { size, _ ->
 fun Triangle(width: Int, height: Int, modifier: Modifier = Modifier) {
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
     Box(
-        modifier = modifier.applyShadowIfNeeded()
+        modifier = modifier
+            .applyShadowIfNeeded()
             .size(width.dp, height.dp)
             .clip(TriangleShape)
             .background(fgColor)
@@ -252,14 +249,15 @@ val FourPointStar = GenericShape { size, _ ->
 fun FourPointStar(width: Number, height: Number, modifier: Modifier = Modifier) {
     val fgColor = modifier.getForegroundColor() ?: driftColors.text
     Box(
-        modifier = modifier.applyShadowIfNeeded()
+        modifier = modifier
+            .applyShadowIfNeeded()
             .size(width.toFloat().dp, height.toFloat().dp)
             .clip(FourPointStar)
             .background(fgColor)
     )
 }
 
-// --- SHAPE HELPER ---
+// shape helper
 fun Circle(): Shape = CircleShape
 fun Capsule(): Shape = RoundedCornerShape(percent = 50)
 fun RoundedRectangle(radius: Int): Shape = RoundedCornerShape(radius.dp)
@@ -267,12 +265,11 @@ fun Triangle(): Shape = TriangleShape
 fun Arrow(): Shape = ArrowShape
 fun FourPointStar(): Shape = FourPointStar
 
-// =============================================================================================
-// IMAGE & INPUTS
-// =============================================================================================
-
+// image and inputs
 @Composable
-fun Image(name: String, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Fit) {
+fun Image(
+    name: String, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Fit
+) {
     val ctx = LocalContext.current
     val id = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
     val customColor = modifier.getForegroundColor()
@@ -287,10 +284,7 @@ fun Image(name: String, modifier: Modifier = Modifier, contentScale: ContentScal
     )
 }
 
-// =============================================================================================
-// TOGGLE, SLIDER, SCROLLVIEW
-// =============================================================================================
-
+// toggle slider scrollview
 @Composable
 fun Toggle(
     isOn: Boolean,
@@ -318,19 +312,17 @@ fun Toggle(
     )
 
     val thumbScale by animateFloatAsState(
-        targetValue = if (isOn) 1.06f else 1.0f,
-        animationSpec = tween(120),
-        label = "thumb_scale"
+        targetValue = if (isOn) 1.06f else 1.0f, animationSpec = tween(120), label = "thumb_scale"
     )
 
     val trackColor by animateColorAsState(
-        targetValue = if (isOn) (styleOn ?: driftColors.accent) else (styleOff ?: driftColors.fieldBackground),
-        animationSpec = tween(200),
-        label = "track_color"
+        targetValue = if (isOn) (styleOn ?: driftColors.accent) else (styleOff
+            ?: driftColors.fieldBackground), animationSpec = tween(200), label = "track_color"
     )
 
     val trackShadow = if (isOn) 8.dp else 1.dp
-    val trackShadowColor = if (isOn) driftColors.accent.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.12f)
+    val trackShadowColor =
+        if (isOn) driftColors.accent.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.12f)
 
     val thumbColor by animateColorAsState(
         targetValue = styleThumb ?: if (isOn) Color.White else Color.White.copy(alpha = 0.85f),
@@ -341,9 +333,7 @@ fun Toggle(
     val thumbShadow = if (isOn) 10.dp else 0.dp
     var pressed by remember { mutableStateOf(false) }
     val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.92f else 1.0f,
-        animationSpec = tween(80),
-        label = "press_scale"
+        targetValue = if (pressed) 0.92f else 1.0f, animationSpec = tween(80), label = "press_scale"
     )
 
     Row(
@@ -369,8 +359,7 @@ fun Toggle(
                 .clip(Capsule())
                 .background(trackColor)
                 .shadow(trackShadow, Capsule(), false, trackShadowColor),
-            contentAlignment = Alignment.CenterStart
-        ) {
+            contentAlignment = Alignment.CenterStart) {
             Box(
                 modifier = Modifier
                     .offset(x = thumbOffset)
@@ -381,14 +370,15 @@ fun Toggle(
                         shadowElevation = thumbShadow.toPx()
                     }
                     .clip(CircleShape)
-                    .background(thumbColor)
-            )
+                    .background(thumbColor))
         }
     }
 }
 
 @Composable
-fun Toggle(value: MutableState<Boolean>, modifier: Modifier = Modifier, label: @Composable () -> Unit) {
+fun Toggle(
+    value: MutableState<Boolean>, modifier: Modifier = Modifier, label: @Composable () -> Unit
+) {
     Toggle(isOn = value.value, onToggle = { value.value = it }, modifier = modifier, label = label)
 }
 
@@ -399,10 +389,7 @@ fun Toggle(label: String, value: MutableState<Boolean>, modifier: Modifier = Mod
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// SLIDER
-// ---------------------------------------------------------------------------------------------
-
+// slider
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -427,7 +414,8 @@ fun Slider(
         }
         val inactiveColor = when (trackColor) {
             is GaugeColor.Solid -> trackColor.color
-            is GaugeColor.Gradient -> trackColor.gradient.colors.firstOrNull() ?: driftColors.fieldBackground
+            is GaugeColor.Gradient -> trackColor.gradient.colors.firstOrNull()
+                ?: driftColors.fieldBackground
         }
 
         MaterialSlider(
@@ -452,8 +440,7 @@ fun Slider(
                         colors = SliderDefaults.colors(thumbColor = activeColor)
                     )
                 }
-            }
-        )
+            })
     } else {
         val progress = normalize(value, range)
         BoxWithConstraints(
@@ -477,8 +464,7 @@ fun Slider(
                         val newValue = (range.first + (rangeSpan * newProgress)).roundToInt()
                         onValueChange(newValue)
                     }
-                }
-        ) {
+                }) {
             RenderLinearGauge(
                 progress = progress,
                 modifier = Modifier.fillMaxWidth(),
@@ -539,7 +525,8 @@ fun Slider(
         }
         val inactiveColor = when (trackColor) {
             is GaugeColor.Solid -> trackColor.color
-            is GaugeColor.Gradient -> trackColor.gradient.colors.firstOrNull() ?: driftColors.fieldBackground
+            is GaugeColor.Gradient -> trackColor.gradient.colors.firstOrNull()
+                ?: driftColors.fieldBackground
         }
 
         MaterialSlider(
@@ -564,8 +551,7 @@ fun Slider(
                         colors = SliderDefaults.colors(thumbColor = activeColor)
                     )
                 }
-            }
-        )
+            })
     } else {
         val progress = normalize(value, range)
         BoxWithConstraints(
@@ -589,8 +575,7 @@ fun Slider(
                         val newValue = range.start + (rangeSpan * newProgress)
                         onValueChange(newValue)
                     }
-                }
-        ) {
+                }) {
             RenderLinearGauge(
                 progress = progress,
                 modifier = Modifier.fillMaxWidth(),
@@ -603,12 +588,7 @@ fun Slider(
     }
 }
 
-
-
-// =============================================================================================
-// CANVAS TOOLS
-// =============================================================================================
-
+// canvas tools
 @Composable
 fun PenTool(
     path: com.example.driftui.core.Path? = null,
@@ -624,38 +604,36 @@ fun PenTool(
     val actualPath = path ?: internal
 
     Canvas(
-        modifier = modifier
-            .pointerInput(actualPath, color, width) {
-                awaitEachGesture {
-                    val canvasSize = size
-                    val down = awaitFirstDown()
+        modifier = modifier.pointerInput(actualPath, color, width) {
+            awaitEachGesture {
+                val canvasSize = size
+                val down = awaitFirstDown()
 
-                    onDrawStart()
+                onDrawStart()
 
-                    val clampedStart = clampOffset(down.position, canvasSize)
-                    actualPath.start(clampedStart, color, width)
-                    lastPointAdded.value = clampedStart
-                    var change: PointerInputChange
+                val clampedStart = clampOffset(down.position, canvasSize)
+                actualPath.start(clampedStart, color, width)
+                lastPointAdded.value = clampedStart
+                var change: PointerInputChange
 
-                    do {
-                        val event = awaitPointerEvent()
-                        change = event.changes.first()
+                do {
+                    val event = awaitPointerEvent()
+                    change = event.changes.first()
 
-                        if (change.pressed) {
-                            val clampedPosition = clampOffset(change.position, canvasSize)
-                            actualPath.lineTo(clampedPosition)
-                            lastPointAdded.value = clampedPosition
-                            change.consumePositionChange()
-                        }
-                    } while (change.pressed)
+                    if (change.pressed) {
+                        val clampedPosition = clampOffset(change.position, canvasSize)
+                        actualPath.lineTo(clampedPosition)
+                        lastPointAdded.value = clampedPosition
+                        change.consumePositionChange()
+                    }
+                } while (change.pressed)
 
-                    if (smooth) actualPath.smoothAllStrokes()
-                    lastPointAdded.value = Offset.Zero
-                    actualPath.finish()
-                    onDrawEnd()
-                }
+                if (smooth) actualPath.smoothAllStrokes()
+                lastPointAdded.value = Offset.Zero
+                actualPath.finish()
+                onDrawEnd()
             }
-    ) {
+        }) {
         lastPointAdded.value
 
         actualPath.strokes.forEach { strokeData ->
@@ -669,12 +647,8 @@ fun PenTool(
                 }
 
                 drawPath(
-                    path = composePath,
-                    color = strokeData.color,
-                    style = Stroke(
-                        width = strokeData.width,
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
+                    path = composePath, color = strokeData.color, style = Stroke(
+                        width = strokeData.width, cap = StrokeCap.Round, join = StrokeJoin.Round
                     )
                 )
             }
@@ -734,13 +708,17 @@ fun EraserTool(
                     currentEraserPos.value = null
                     onDrawEnd()
                 }
-            }
-    ) {
+            }) {
         forceRecompose.value
 
         currentEraserPos.value?.let { pos ->
             drawCircle(color = Color.Gray.copy(alpha = 0.2f), radius = radius, center = pos)
-            drawCircle(color = Color.Black.copy(alpha = 0.1f), radius = radius, center = pos, style = Stroke(1f))
+            drawCircle(
+                color = Color.Black.copy(alpha = 0.1f),
+                radius = radius,
+                center = pos,
+                style = Stroke(1f)
+            )
         }
     }
 }
@@ -780,10 +758,7 @@ fun DriftCanvas(controller: DriftDrawController, modifier: Modifier = Modifier) 
     }
 }
 
-// =================================================================================================
-// GAUGES
-// =================================================================================================
-
+// gauges
 internal fun normalize(value: Number, range: ClosedFloatingPointRange<Double>): Float {
     val min = range.start
     val max = range.endInclusive
@@ -846,8 +821,20 @@ internal fun RenderCircularGauge(
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
-            drawArc(brush = trackBrush, startAngle = startAngle, sweepAngle = sweepAngle, useCenter = false, style = stroke)
-            drawArc(brush = fillBrush, startAngle = startAngle, sweepAngle = sweepAngle * progress, useCenter = false, style = stroke)
+            drawArc(
+                brush = trackBrush,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                style = stroke
+            )
+            drawArc(
+                brush = fillBrush,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle * progress,
+                useCenter = false,
+                style = stroke
+            )
         }
         if (tracker != null) {
             val rad = Math.toRadians(angle.toDouble())
@@ -873,12 +860,25 @@ internal fun RenderLinearGauge(
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.CenterStart) {
         val totalWidth = constraints.maxWidth.toFloat()
-        Box(modifier = Modifier.fillMaxWidth().height(thickness).clip(RoundedCornerShape(thickness / 2)).background(trackBrush))
-        Box(modifier = Modifier.fillMaxWidth(progress).height(thickness).clip(RoundedCornerShape(thickness / 2)).background(fillBrush))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(thickness)
+                .clip(RoundedCornerShape(thickness / 2))
+                .background(trackBrush)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress)
+                .height(thickness)
+                .clip(RoundedCornerShape(thickness / 2))
+                .background(fillBrush)
+        )
 
         if (tracker != null) {
             Layout(content = tracker, modifier = Modifier.zIndex(1f)) { measurables, constraints ->
-                val placeable = measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+                val placeable =
+                    measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
                 val centerX = totalWidth * progress
                 val x = (centerX - (placeable.width / 2)).roundToInt()
                 layout(placeable.width, placeable.height) { placeable.placeRelative(x, 0) }
@@ -897,7 +897,9 @@ fun LinearGauge(
     fillColor: GaugeColor = gaugeColor(Color.Red),
     tracker: (@Composable () -> Unit)? = null
 ) {
-    RenderLinearGauge(normalize(value, range), modifier, thickness.toDp(), trackColor, fillColor, tracker)
+    RenderLinearGauge(
+        normalize(value, range), modifier, thickness.toDp(), trackColor, fillColor, tracker
+    )
 }
 
 @Composable
@@ -910,7 +912,9 @@ fun LinearGauge(
     fillColor: GaugeColor = gaugeColor(Color.Red),
     tracker: (@Composable () -> Unit)? = null
 ) {
-    RenderLinearGauge(normalize(value, range), modifier, thickness.toDp(), trackColor, fillColor, tracker)
+    RenderLinearGauge(
+        normalize(value, range), modifier, thickness.toDp(), trackColor, fillColor, tracker
+    )
 }
 
 @Composable
@@ -924,7 +928,18 @@ fun CircularGauge(
     fillColor: GaugeColor = gaugeColor(Color.Red),
     content: (@Composable () -> Unit)? = null
 ) {
-    RenderCircularGauge(normalize(value, range), modifier, radius.toDp(), thickness.toDp(), -90f, 360f, trackColor, fillColor, null, content)
+    RenderCircularGauge(
+        normalize(value, range),
+        modifier,
+        radius.toDp(),
+        thickness.toDp(),
+        -90f,
+        360f,
+        trackColor,
+        fillColor,
+        null,
+        content
+    )
 }
 
 @Composable
@@ -938,7 +953,18 @@ fun CircularGauge(
     fillColor: GaugeColor = gaugeColor(Color.Red),
     content: (@Composable () -> Unit)? = null
 ) {
-    RenderCircularGauge(normalize(value, range), modifier, radius.toDp(), thickness.toDp(), -90f, 360f, trackColor, fillColor, null, content)
+    RenderCircularGauge(
+        normalize(value, range),
+        modifier,
+        radius.toDp(),
+        thickness.toDp(),
+        -90f,
+        360f,
+        trackColor,
+        fillColor,
+        null,
+        content
+    )
 }
 
 @Composable
@@ -953,7 +979,18 @@ fun AccessoryCircularGauge(
     tracker: (@Composable () -> Unit)? = null,
     content: (@Composable () -> Unit)? = null
 ) {
-    RenderCircularGauge(normalize(value, range), modifier, radius.toDp(), thickness.toDp(), 135f, 270f, trackColor, fillColor, tracker, content)
+    RenderCircularGauge(
+        normalize(value, range),
+        modifier,
+        radius.toDp(),
+        thickness.toDp(),
+        135f,
+        270f,
+        trackColor,
+        fillColor,
+        tracker,
+        content
+    )
 }
 
 @Composable
@@ -968,21 +1005,33 @@ fun AccessoryCircularGauge(
     tracker: (@Composable () -> Unit)? = null,
     content: (@Composable () -> Unit)? = null
 ) {
-    RenderCircularGauge(normalize(value, range), modifier, radius.toDp(), thickness.toDp(), 135f, 270f, trackColor, fillColor, tracker, content)
+    RenderCircularGauge(
+        normalize(value, range),
+        modifier,
+        radius.toDp(),
+        thickness.toDp(),
+        135f,
+        270f,
+        trackColor,
+        fillColor,
+        tracker,
+        content
+    )
 }
 
-// =============================================================================================
-// MISC COMPONENTS
-// =============================================================================================
-
+// addons
 @Composable
 fun ColorPicker(
-    selectedColor: MutableState<Color>,
-    colors: List<Color> = listOf(
-        Color.Black, Color.Red, Color.Blue, Color.Green,
-        Color.Yellow, Color.Magenta, Color.Cyan, Color.Gray
-    ),
-    modifier: Modifier = Modifier
+    selectedColor: MutableState<Color>, colors: List<Color> = listOf(
+        Color.Black,
+        Color.Red,
+        Color.Blue,
+        Color.Green,
+        Color.Yellow,
+        Color.Magenta,
+        Color.Cyan,
+        Color.Gray
+    ), modifier: Modifier = Modifier
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1002,16 +1051,12 @@ fun ColorPicker(
                     )
                     .onTapGesture {
                         selectedColor.value = color
-                    }
-            )
+                    })
         }
     }
 }
 
-// =============================================================================================
-// COLOR HELPERS
-// =============================================================================================
-
+// color helpers
 fun Color.darker(factor: Float = 0.2f): Color {
     val r = (this.red * (1 - factor)).coerceIn(0f, 1f)
     val g = (this.green * (1 - factor)).coerceIn(0f, 1f)
@@ -1039,6 +1084,7 @@ fun hex(hexString: String): Color {
                 val b = cleanHex.substring(4, 6).toInt(16)
                 Color(r, g, b)
             }
+
             8 -> {
                 val a = cleanHex.substring(0, 2).toInt(16)
                 val r = cleanHex.substring(2, 4).toInt(16)
@@ -1046,10 +1092,10 @@ fun hex(hexString: String): Color {
                 val b = cleanHex.substring(6, 8).toInt(16)
                 Color(r, g, b, a)
             }
+
             else -> Color.Black
         }
     } catch (e: Exception) {
         Color.Black
     }
 }
-
