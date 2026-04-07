@@ -445,9 +445,8 @@ fun UserListScreen() {
     // Creates or opens "users_db"
     val users = DriftStore("users_db", User::class)
 
-    DriftView {
-        // Your UI code...
-    }
+    // Your UI code...
+    
 }
 ```
 
