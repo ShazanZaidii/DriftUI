@@ -59,8 +59,8 @@ enum class AppTab {
 @Composable
 fun MainDashboardScreen() {
 
-    //To adjust theme on any screen. You can also use darkMode
-    // [Optional, if you already have it managed globally then dont use.]
+    //To adjust theme on any screen. You can pass "darkMode" in the style too
+    // [This is Optional, if you already have the status bar theme managed globally then dont use this.]
     StatusBar(lightMode)
 
     // 2. Initialize DriftTabNavigator
