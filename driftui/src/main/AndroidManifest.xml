@@ -10,7 +10,7 @@
 
     <application>
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.shazan.driftui.core.DriftFileProvider"
             android:authorities="${applicationId}.driftui.provider"
             android:exported="false"
             android:grantUriPermissions="true">

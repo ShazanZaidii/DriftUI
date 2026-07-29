@@ -101,7 +101,7 @@ afterEvaluate {
 
                 groupId = "com.shazan"
                 artifactId = "driftui"
-                version = "3.8.2"
+                version = "3.8.3"
             }
         }
     }
